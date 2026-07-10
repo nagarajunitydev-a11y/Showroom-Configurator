@@ -22,6 +22,8 @@ export const ThreeViewer = () => {
   useEffect(() => {
     if (!containerRef.current || !vehicle) return;
 
+    const variant = vehicle.variants.find((entry) => entry.id === vehicle.activeVariantId) ?? vehicle.variants[0] ?? null;
+
     const scene = new THREE.Scene();
     scene.background = new THREE.Color('#050505');
     scene.fog = new THREE.Fog('#050505', 10, 30);
@@ -142,8 +144,8 @@ export const ThreeViewer = () => {
     shadowPlane.receiveShadow = true;
     scene.add(shadowPlane);
 
-    const camera = new THREE.PerspectiveCamera(45, containerRef.current.clientWidth / containerRef.current.clientHeight, 0.1, 100);
-    camera.position.set(5, 2, 5);
+    const camera = new THREE.PerspectiveCamera((variant?.cameraSettings?.zoom ?? vehicle.cameraSettings?.zoom ?? 45), containerRef.current.clientWidth / containerRef.current.clientHeight, 0.1, 100);
+    camera.position.set(...(variant?.cameraSettings?.position ?? vehicle.cameraSettings?.position ?? [5, 2, 5]));
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -151,7 +153,7 @@ export const ThreeViewer = () => {
     controls.minDistance = 3;
     controls.maxDistance = 12;
     controls.maxPolarAngle = Math.PI / 2 + 0.05;
-    controls.target.set(0, 0.5, 0);
+    controls.target.set(...(variant?.cameraSettings?.target ?? vehicle.cameraSettings?.target ?? [0, 0.5, 0]));
 
     const state = { targetCameraPos: null as THREE.Vector3 | null };
     controls.addEventListener('start', () => {
@@ -217,9 +219,10 @@ export const ThreeViewer = () => {
   useEffect(() => {
     if (!threeRef.current || !vehicle) return;
     const { state } = threeRef.current;
+    const variant = vehicle.variants.find((entry) => entry.id === vehicle.activeVariantId) ?? vehicle.variants[0] ?? null;
 
-    if (vehicle.cameras[activeCameraPreset]) {
-      const [x, y, z] = vehicle.cameras[activeCameraPreset];
+    if ((variant?.cameras ?? vehicle.cameras)[activeCameraPreset]) {
+      const [x, y, z] = (variant?.cameras ?? vehicle.cameras)[activeCameraPreset];
       state.targetCameraPos = new THREE.Vector3(x, y, z);
     }
   }, [activeCameraPreset, vehicle]);

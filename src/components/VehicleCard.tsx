@@ -1,36 +1,38 @@
-import { ChevronRight, CarFront } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { CarFront } from 'lucide-react';
 import { FormattedPrice } from './FormattedPrice';
 import type { Vehicle } from '../types';
 
 interface VehicleCardProps {
   vehicle: Vehicle;
   onSelect: (vehicleId: string) => void;
+  index?: number;
 }
 
-export const VehicleCard = ({ vehicle, onSelect }: VehicleCardProps) => (
-  <div
+export const VehicleCard = ({ vehicle, onSelect, index = 0 }: VehicleCardProps) => (
+  <motion.button
+    type="button"
+    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+    animate={{ opacity: 1, scale: 1, y: 0 }}
+    transition={{ duration: 0.3, delay: index * 0.08 }}
     onClick={() => onSelect(vehicle.id)}
-    className="group cursor-pointer overflow-hidden rounded-2xl border border-white/5 bg-zinc-900 shadow-lg transition-all hover:-translate-y-1 hover:border-white/20 hover:shadow-2xl"
+    aria-label={`Open ${vehicle.brand} ${vehicle.model} configurator`}
+    className="group relative flex aspect-square w-[130px] flex-col items-center justify-center overflow-hidden rounded-full border border-white/10 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.14),transparent_45%),linear-gradient(135deg,rgba(24,24,27,0.95),rgba(9,9,11,1))] p-3 text-center shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_18px_60px_rgba(0,0,0,0.35)] transition-all duration-300 hover:-translate-y-2 hover:scale-105 hover:border-sky-400/40 hover:shadow-[0_0_0_1px_rgba(56,189,248,0.25),0_22px_80px_rgba(14,116,144,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:w-[160px] sm:p-4"
   >
-    <div className="relative flex h-48 items-center justify-center bg-gradient-to-br from-zinc-800 to-black">
-      <CarFront size={64} className="text-zinc-700 transition-colors group-hover:text-zinc-500" />
-      {vehicle.url && (
-        <div className="absolute right-4 top-4 rounded border border-blue-500/30 bg-blue-500/20 px-2 py-1 text-[10px] font-bold text-blue-400">
-          Custom 3D Model
-        </div>
-      )}
+    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),transparent_55%)]" />
+    {vehicle.url && (
+      <span className="absolute right-3 top-3 rounded-full border border-sky-400/30 bg-sky-400/15 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.25em] text-sky-300">
+        3D
+      </span>
+    )}
+    <div className="relative mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-black/40 text-zinc-200 sm:h-14 sm:w-14">
+      <CarFront size={24} className="transition-transform duration-300 group-hover:rotate-[-8deg] sm:size-[28px]" />
     </div>
-    <div className="p-6">
-      <div className="mb-1 text-xs uppercase tracking-widest text-zinc-500">{vehicle.brand}</div>
-      <h3 className="mb-4 text-2xl font-light text-zinc-200 transition-colors group-hover:text-white">{vehicle.model}</h3>
-      <div className="flex items-center justify-between text-sm font-medium">
-        <span className="text-zinc-400">
-          From <span className="text-white"><FormattedPrice price={vehicle.basePrice} /></span>
-        </span>
-        <span className="flex items-center gap-1 text-white transition-transform group-hover:translate-x-1">
-          Configure <ChevronRight size={16} />
-        </span>
-      </div>
-    </div>
-  </div>
+    <span className="relative text-[10px] uppercase tracking-[0.35em] text-zinc-500">{vehicle.brand}</span>
+    <h3 className="relative mt-1 max-w-[90px] text-sm font-semibold leading-tight text-zinc-100 sm:max-w-[110px] sm:text-base">{vehicle.model}</h3>
+    <span className="relative mt-2 rounded-full border border-white/10 bg-white/10 px-2 py-1 text-[10px] font-medium text-zinc-300">
+      From <FormattedPrice price={vehicle.basePrice} />
+    </span>
+    <div className="pointer-events-none absolute inset-3 rounded-full border border-white/10 opacity-70 transition group-hover:border-sky-400/40" />
+  </motion.button>
 );

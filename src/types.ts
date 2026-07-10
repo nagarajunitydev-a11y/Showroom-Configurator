@@ -16,6 +16,8 @@ export interface VehicleOption {
   roughness?: number;
   metalness?: number;
   clearcoat?: number;
+  placementId?: string;
+  variantIds?: string[];
 }
 
 export interface VehicleCategory {
@@ -24,6 +26,31 @@ export interface VehicleCategory {
   icon: string;
   options: VehicleOption[];
   defaultOptionId: string;
+}
+
+export interface AccessoryPlacement {
+  id: string;
+  name: string;
+  position: [number, number, number];
+  rotation: [number, number, number];
+}
+
+export interface CameraSettings {
+  position: [number, number, number];
+  target: [number, number, number];
+  zoom: number;
+  rotation: [number, number, number];
+}
+
+export interface VehicleVariant {
+  id: string;
+  name: string;
+  description: string;
+  basePrice: number;
+  categories: VehicleCategory[];
+  cameras: Record<string, [number, number, number]>;
+  cameraSettings: CameraSettings;
+  accessoryPlacements: AccessoryPlacement[];
 }
 
 export interface Vehicle {
@@ -36,6 +63,9 @@ export interface Vehicle {
   url: string | null;
   cameras: Record<string, [number, number, number]>;
   categories: VehicleCategory[];
+  variants: VehicleVariant[];
+  activeVariantId: string;
+  cameraSettings: CameraSettings;
 }
 
 export type View = 'landing' | 'client_grid' | 'configurator' | 'admin_dashboard';

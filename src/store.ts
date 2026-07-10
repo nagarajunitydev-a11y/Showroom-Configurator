@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { createVehicleId } from './services/vehicleService';
-import { MATERIAL_TYPES, type Vehicle, type VehicleCategory, type View } from './types';
+import { MATERIAL_TYPES, type AccessoryPlacement, type CameraSettings, type Vehicle, type VehicleCategory, type VehicleOption, type VehicleVariant, type View } from './types';
 
 const DEFAULT_CATEGORIES: VehicleCategory[] = [
   {
@@ -39,24 +39,62 @@ const DEFAULT_CATEGORIES: VehicleCategory[] = [
   },
 ];
 
+const DEFAULT_CAMERA_SETTINGS: CameraSettings = {
+  position: [5, 2, 5],
+  target: [0, 0.5, 0],
+  zoom: 45,
+  rotation: [0, 0, 0],
+};
+
+const createVariant = (vehicle: Partial<Vehicle>): VehicleVariant => ({
+  id: 'variant-main',
+  name: 'Standard',
+  description: 'Default variant',
+  basePrice: vehicle.basePrice ?? 85000,
+  categories: DEFAULT_CATEGORIES,
+  cameras: {
+    default: [5, 2, 5],
+    front: [0, 1, 6],
+    side: [6, 1, 0],
+    wheel: [3, 0.5, 2.5],
+    rear: [0, 1.5, -6],
+  },
+  cameraSettings: DEFAULT_CAMERA_SETTINGS,
+  accessoryPlacements: [
+    { id: 'spoiler', name: 'Rear Spoiler', position: [0, 0.8, -2.3], rotation: [0, 0, 0] },
+  ],
+});
+
+const createDefaultVehicle = (vehicleData: Partial<Vehicle> = {}): Vehicle => ({
+  id: vehicleData.id ?? 'vehicle-default',
+  type: vehicleData.type ?? 'Car',
+  brand: vehicleData.brand ?? 'Aero',
+  model: vehicleData.model ?? 'Prototype',
+  year: vehicleData.year ?? 2026,
+  basePrice: vehicleData.basePrice ?? 85000,
+  url: vehicleData.url ?? null,
+  cameras: vehicleData.cameras ?? {
+    default: [5, 2, 5],
+    front: [0, 1, 6],
+    side: [6, 1, 0],
+    wheel: [3, 0.5, 2.5],
+    rear: [0, 1.5, -6],
+  },
+  categories: vehicleData.categories ?? DEFAULT_CATEGORIES,
+  variants: vehicleData.variants ?? [createVariant({ basePrice: vehicleData.basePrice ?? 85000 })],
+  activeVariantId: vehicleData.activeVariantId ?? 'variant-main',
+  cameraSettings: vehicleData.cameraSettings ?? DEFAULT_CAMERA_SETTINGS,
+});
+
 const INITIAL_VEHICLES: Vehicle[] = [
-  {
+  createDefaultVehicle({
     id: 'v-001',
     type: 'Car',
     brand: 'Aero',
     model: 'Stratos Concept',
     year: 2026,
     basePrice: 85000,
-    url: null,
-    cameras: {
-      default: [5, 2, 5],
-      front: [0, 1, 6],
-      side: [6, 1, 0],
-      wheel: [3, 0.5, 2.5],
-      rear: [0, 1.5, -6],
-    },
-    categories: DEFAULT_CATEGORIES,
-  },
+  }),
 ];
 
 export interface AppStoreState {
@@ -68,13 +106,15 @@ export interface AppStoreState {
   history: Record<string, string>[];
   historyIndex: number;
   activeCameraPreset: string;
+  isLoading: boolean;
+  loadingMessage: string;
 }
 
 interface AppStoreActions {
   setView: (view: View) => void;
   adminLogin: (password: string) => boolean;
   adminLogout: () => void;
-  addVehicle: (vehicleData: Omit<Vehicle, 'id' | 'url' | 'cameras' | 'categories'>, file: File) => void;
+  addVehicle: (vehicleData: Omit<Vehicle, 'id' | 'url' | 'cameras' | 'categories' | 'variants' | 'activeVariantId' | 'cameraSettings'>, file: File) => void;
   removeVehicle: (id: string) => void;
   initializeConfigurator: (vehicleId: string) => void;
   selectOption: (categoryId: string, optionId: string) => void;
@@ -82,6 +122,15 @@ interface AppStoreActions {
   redo: () => void;
   setCameraPreset: (preset: string) => void;
   getTotalPrice: () => number;
+  setLoading: (isLoading: boolean, message?: string) => void;
+  addVariant: (vehicleId: string, variant: VehicleVariant) => void;
+  updateVariant: (vehicleId: string, variantId: string, patch: Partial<VehicleVariant>) => void;
+  addAccessoryOption: (vehicleId: string, categoryId: string, option: VehicleOption) => void;
+  updateAccessoryOption: (vehicleId: string, categoryId: string, optionId: string, patch: Partial<VehicleOption>) => void;
+  addPlacement: (vehicleId: string, variantId: string, placement: AccessoryPlacement) => void;
+  updatePlacement: (vehicleId: string, variantId: string, placementId: string, patch: Partial<AccessoryPlacement>) => void;
+  setActiveVariant: (vehicleId: string, variantId: string) => void;
+  updateVehicleCameraSettings: (vehicleId: string, settings: CameraSettings) => void;
 }
 
 export type AppStore = AppStoreState & AppStoreActions;
@@ -95,6 +144,8 @@ export const useAppStore = create<AppStore>()((set, get) => ({
   history: [],
   historyIndex: -1,
   activeCameraPreset: 'default',
+  isLoading: false,
+  loadingMessage: 'Preparing your experience…',
 
   setView: (view) => set({ currentView: view }),
 
@@ -109,13 +160,13 @@ export const useAppStore = create<AppStore>()((set, get) => ({
   adminLogout: () => set({ isAdminAuthed: false, currentView: 'landing' }),
 
   addVehicle: (vehicleData, file) => {
-    const newVehicle: Vehicle = {
+    const newVehicle: Vehicle = createDefaultVehicle({
       ...vehicleData,
       id: createVehicleId(),
       url: URL.createObjectURL(file),
       cameras: INITIAL_VEHICLES[0].cameras,
       categories: DEFAULT_CATEGORIES,
-    };
+    });
     set((state) => ({ vehicles: [...state.vehicles, newVehicle] }));
   },
 
@@ -137,7 +188,11 @@ export const useAppStore = create<AppStore>()((set, get) => ({
       historyIndex: 0,
       activeCameraPreset: 'default',
       currentView: 'configurator',
+      isLoading: true,
+      loadingMessage: 'Loading vehicle assets…',
     });
+
+    window.setTimeout(() => get().setLoading(false), 500);
   },
 
   selectOption: (categoryId, optionId) => {
@@ -155,8 +210,12 @@ export const useAppStore = create<AppStore>()((set, get) => ({
         history: newHistory,
         historyIndex: newHistory.length - 1,
         activeCameraPreset: newCamera,
+        isLoading: true,
+        loadingMessage: 'Updating configuration…',
       };
     });
+
+    window.setTimeout(() => get().setLoading(false), 400);
   },
 
   undo: () => set((state) => ({
@@ -184,4 +243,26 @@ export const useAppStore = create<AppStore>()((set, get) => ({
     });
     return total;
   },
+
+  setLoading: (isLoading, message) => set({ isLoading, loadingMessage: message ?? 'Preparing your experience…' }),
+
+  addVariant: (vehicleId, variant) => set((state) => ({ vehicles: state.vehicles.map((vehicle) => vehicle.id === vehicleId ? { ...vehicle, variants: [...vehicle.variants, variant] } : vehicle) })),
+
+  updateVariant: (vehicleId, variantId, patch) => set((state) => ({ vehicles: state.vehicles.map((vehicle) => vehicle.id === vehicleId ? { ...vehicle, variants: vehicle.variants.map((variant) => variant.id === variantId ? { ...variant, ...patch } : variant) } : vehicle) })),
+
+  addAccessoryOption: (vehicleId, categoryId, option) => set((state) => ({ vehicles: state.vehicles.map((vehicle) => vehicle.id === vehicleId ? { ...vehicle, categories: vehicle.categories.map((category) => category.id === categoryId ? { ...category, options: [...category.options, option] } : category) } : vehicle) })),
+
+  updateAccessoryOption: (vehicleId, categoryId, optionId, patch) => set((state) => ({ vehicles: state.vehicles.map((vehicle) => vehicle.id === vehicleId ? { ...vehicle, categories: vehicle.categories.map((category) => category.id === categoryId ? { ...category, options: category.options.map((option) => option.id === optionId ? { ...option, ...patch } : option) } : category) } : vehicle) })),
+
+  addPlacement: (vehicleId, variantId, placement) => set((state) => ({ vehicles: state.vehicles.map((vehicle) => vehicle.id === vehicleId ? { ...vehicle, variants: vehicle.variants.map((variant) => variant.id === variantId ? { ...variant, accessoryPlacements: [...variant.accessoryPlacements, placement] } : variant) } : vehicle) })),
+
+  updatePlacement: (vehicleId, variantId, placementId, patch) => set((state) => ({ vehicles: state.vehicles.map((vehicle) => vehicle.id === vehicleId ? { ...vehicle, variants: vehicle.variants.map((variant) => variant.id === variantId ? { ...variant, accessoryPlacements: variant.accessoryPlacements.map((placement) => placement.id === placementId ? { ...placement, ...patch } : placement) } : variant) } : vehicle) })),
+
+  setActiveVariant: (vehicleId, variantId) => {
+    set((state) => ({ vehicles: state.vehicles.map((vehicle) => vehicle.id === vehicleId ? { ...vehicle, activeVariantId: variantId } : vehicle) }));
+    set({ isLoading: true, loadingMessage: 'Switching variant…' });
+    window.setTimeout(() => get().setLoading(false), 500);
+  },
+
+  updateVehicleCameraSettings: (vehicleId, settings) => set((state) => ({ vehicles: state.vehicles.map((vehicle) => vehicle.id === vehicleId ? { ...vehicle, cameraSettings: settings } : vehicle) })),
 }));
