@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Palette, CircleDot, Settings2, Check, Camera as CameraIcon, Undo2, Redo2, ArrowLeft, ChevronRight, Info } from 'lucide-react';
+import { Palette, CircleDot, Package, Settings2, Check, Camera as CameraIcon, Undo2, Redo2, ArrowLeft, ChevronRight, Info } from 'lucide-react';
 import { FormattedPrice } from './FormattedPrice';
 import { formatPrice } from '../utils/price';
 import { MATERIAL_TYPES, type Vehicle } from '../types';
@@ -24,22 +25,40 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
     activeCameraPreset,
     setView,
   } = useAppStore();
+  const [isExpanded, setIsExpanded] = useState(true);
 
   const currentCategoryData = vehicle.categories.find((category) => category.id === activeCategory);
-  const icons: Record<string, JSX.Element> = { Palette: <Palette size={20} />, CircleDot: <CircleDot size={20} /> };
+  const icons: Record<string, JSX.Element> = { Palette: <Palette size={20} />, CircleDot: <CircleDot size={20} />, Package: <Package size={20} /> };
+
+  if (!isExpanded) {
+    return (
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center p-3 md:justify-end md:pr-6 md:pb-6">
+        <div className="pointer-events-auto flex w-full max-w-xl items-center justify-between rounded-full border border-white/10 bg-black/75 px-4 py-3 backdrop-blur-xl">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.3em] text-zinc-400">{vehicle.brand}</div>
+            <div className="text-sm font-medium">{vehicle.model}</div>
+          </div>
+          <button onClick={() => setIsExpanded(true)} className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-black">Expand</button>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pointer-events-none absolute inset-0 z-10 flex flex-col justify-between font-sans text-white">
-      <header className="pointer-events-auto flex w-full items-start justify-between p-6">
+      <header className="pointer-events-auto flex w-full flex-col gap-4 p-3 sm:p-4 md:flex-row md:items-start md:justify-between md:p-6">
         <div className="flex flex-col drop-shadow-md">
-          <button onClick={() => setView('client_grid')} className="mb-4 flex w-fit items-center gap-2 text-sm font-medium text-zinc-400 transition-colors hover:text-white">
+          <button onClick={() => setView('client_grid')} className="mb-3 flex w-fit items-center gap-2 text-sm font-medium text-zinc-400 transition-colors hover:text-white">
             <ArrowLeft size={16} /> Back to Showroom
           </button>
           <h2 className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-400">{vehicle.brand}</h2>
-          <h1 className="mt-1 text-4xl font-light tracking-tight md:text-5xl">{vehicle.model}</h1>
+          <h1 className="mt-1 text-3xl font-light tracking-tight sm:text-4xl md:text-5xl">{vehicle.model}</h1>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <button onClick={() => setIsExpanded(false)} className="rounded-full border border-white/10 bg-white/5 p-3 backdrop-blur-xl transition-all hover:bg-white/10" title="Shrink panel">
+            <ChevronRight size={18} className="rotate-180" />
+          </button>
           <button onClick={undo} disabled={historyIndex <= 0} className="rounded-full border border-white/10 bg-white/5 p-3 backdrop-blur-xl transition-all hover:bg-white/10 disabled:opacity-30">
             <Undo2 size={18} />
           </button>
@@ -49,27 +68,27 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
         </div>
       </header>
 
-      <div className="flex flex-1 flex-col items-end justify-end p-4 pb-24 pointer-events-none md:flex-row md:items-stretch md:p-6 md:pb-6">
-        <div className="pointer-events-auto absolute bottom-28 left-6 flex flex-col gap-3 md:bottom-1/2 md:translate-y-1/2">
+      <div className="flex flex-1 flex-col items-end justify-end p-2 pb-24 pointer-events-none sm:p-3 md:flex-row md:items-stretch md:p-6 md:pb-6">
+        <div className="pointer-events-auto absolute bottom-24 left-3 flex flex-col gap-2 sm:bottom-28 sm:left-6 sm:gap-3 md:bottom-1/2 md:translate-y-1/2">
           {Object.keys(vehicle.cameras).map((preset) => (
             <button
               key={preset}
               onClick={() => setCameraPreset(preset)}
-              className={`rounded-full border p-3 backdrop-blur-md transition-all ${activeCameraPreset === preset ? 'border-white bg-white text-black' : 'border-white/10 bg-black/40 text-white hover:bg-black/60'}`}
+              className={`rounded-full border p-2.5 backdrop-blur-md transition-all sm:p-3 ${activeCameraPreset === preset ? 'border-white bg-white text-black' : 'border-white/10 bg-black/40 text-white hover:bg-black/60'}`}
               title={`View: ${preset}`}
             >
-              <CameraIcon size={18} />
+              <CameraIcon size={16} className="sm:h-[18px] sm:w-[18px]" />
             </button>
           ))}
         </div>
 
-        <div className="pointer-events-auto flex w-full flex-col overflow-hidden rounded-3xl border border-white/10 bg-black/60 shadow-2xl backdrop-blur-2xl md:w-96">
+        <div className="pointer-events-auto flex w-full flex-col overflow-hidden rounded-[24px] border border-white/10 bg-black/70 shadow-2xl backdrop-blur-2xl sm:rounded-[28px] md:w-[22rem] xl:w-96">
           <div className="flex overflow-x-auto border-b border-white/10 scrollbar-hide">
             {vehicle.categories.map((category) => (
               <button
                 key={category.id}
                 onClick={() => onCategoryChange(category.id)}
-                className={`relative flex min-w-[100px] flex-1 flex-col items-center justify-center gap-2 px-2 py-4 transition-all ${activeCategory === category.id ? 'bg-white/10 text-white' : 'text-zinc-500 hover:bg-white/5 hover:text-zinc-300'}`}
+                className={`relative flex min-w-[100px] flex-1 flex-col items-center justify-center gap-2 px-2 py-3 transition-all sm:py-4 ${activeCategory === category.id ? 'bg-white/10 text-white' : 'text-zinc-500 hover:bg-white/5 hover:text-zinc-300'}`}
               >
                 {icons[category.icon] || <Settings2 size={20} />}
                 <span className="text-[10px] font-semibold uppercase tracking-wider">{category.name}</span>
@@ -78,7 +97,7 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
             ))}
           </div>
 
-          <div className="max-h-[40vh] flex-1 overflow-y-auto p-6 md:max-h-[60vh]">
+          <div className="max-h-[34vh] flex-1 overflow-y-auto p-4 sm:max-h-[42vh] sm:p-6 md:max-h-[56vh]">
             <AnimatePresence mode="wait">
               <motion.div key={activeCategory} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col gap-3">
                 {currentCategoryData?.options.map((option) => {
@@ -86,8 +105,8 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
                   const isColor = option.hex && option.type !== MATERIAL_TYPES.CARBON;
 
                   return (
-                    <button key={option.id} onClick={() => selectOption(activeCategory, option.id)} className={`flex items-center justify-between rounded-xl border p-4 transition-all ${isSelected ? 'border-white bg-white/10' : 'border-white/5 bg-black/40 hover:bg-white/5'}`}>
-                      <div className="flex items-center gap-4">
+                    <button key={option.id} onClick={() => selectOption(activeCategory, option.id)} className={`flex items-center justify-between rounded-xl border p-3 transition-all sm:p-4 ${isSelected ? 'border-white bg-white/10' : 'border-white/5 bg-black/40 hover:bg-white/5'}`}>
+                      <div className="flex items-center gap-3 sm:gap-4">
                         {isColor ? (
                           <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/20 shadow-inner" style={{ backgroundColor: option.hex }}>
                             {isSelected && <Check size={14} className="text-white mix-blend-difference" />}
@@ -111,16 +130,16 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
         </div>
       </div>
 
-      <div className="pointer-events-auto z-20 flex w-full flex-col items-center justify-between gap-4 border-t border-white/10 bg-black/80 p-4 backdrop-blur-xl md:flex-row md:px-8 md:py-5">
+      <div className="pointer-events-auto z-20 flex w-full flex-col items-stretch justify-between gap-3 border-t border-white/10 bg-black/80 p-3 backdrop-blur-xl sm:gap-4 sm:p-4 md:flex-row md:items-center md:px-8 md:py-5">
         <div className="flex w-full flex-col md:w-auto">
-          <span className="mb-1 text-xs font-semibold uppercase tracking-[0.3em] text-zinc-400">Total Build Price</span>
-          <div className="text-3xl font-light tabular-nums"><FormattedPrice price={getTotalPrice()} /></div>
+          <span className="mb-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-zinc-400">Total Build Price</span>
+          <div className="text-2xl font-light tabular-nums sm:text-3xl"><FormattedPrice price={getTotalPrice()} /></div>
         </div>
-        <div className="flex w-full gap-3 md:w-auto">
-          <button className="flex flex-1 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/10 px-6 py-3 text-sm font-medium text-white transition-all hover:bg-white/20 md:flex-none">
+        <div className="flex w-full flex-col gap-2 sm:flex-row md:w-auto">
+          <button className="flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm font-medium text-white transition-all hover:bg-white/20">
             <Info size={16} /> Summary
           </button>
-          <button className="flex flex-1 items-center justify-center gap-2 rounded-full bg-white px-8 py-3 text-sm font-semibold text-black transition-all hover:bg-gray-200 md:flex-none">
+          <button className="flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition-all hover:bg-gray-200">
             Order Now <ChevronRight size={16} />
           </button>
         </div>

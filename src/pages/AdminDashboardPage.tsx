@@ -3,11 +3,14 @@ import { Shield, Upload, Plus, Trash2 } from 'lucide-react';
 import { FormattedPrice } from '../components/FormattedPrice';
 import { useAppStore } from '../store';
 import type { Vehicle } from '../types';
+import { formatPrice } from '../utils/price';
 
 export const AdminDashboardPage = () => {
   const { vehicles, removeVehicle, addVehicle, adminLogout } = useAppStore();
   const [formData, setFormData] = useState({ brand: '', model: '', year: new Date().getFullYear(), basePrice: 50000 });
   const [file, setFile] = useState<File | null>(null);
+  const [activeTab, setActiveTab] = useState<'inventory' | 'accessories'>('inventory');
+  const accessoryCatalog = vehicles.find((vehicle) => vehicle.categories.some((category) => category.id === 'accessories'))?.categories.find((category) => category.id === 'accessories')?.options ?? [];
 
   const handleUpload = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -38,6 +41,16 @@ export const AdminDashboardPage = () => {
           </button>
         </header>
 
+        <div className="mb-8 flex flex-wrap gap-2 rounded-full border border-white/10 bg-zinc-900 p-1.5">
+          <button onClick={() => setActiveTab('inventory')} className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'inventory' ? 'bg-white text-black' : 'text-zinc-400 hover:text-white'}`}>
+            Inventory
+          </button>
+          <button onClick={() => setActiveTab('accessories')} className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'accessories' ? 'bg-white text-black' : 'text-zinc-400 hover:text-white'}`}>
+            Accessories
+          </button>
+        </div>
+
+        {activeTab === 'inventory' ? (
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-3">
           <div className="col-span-1 h-fit rounded-2xl border border-white/10 bg-zinc-900 p-6">
             <h2 className="mb-6 flex items-center gap-2 text-xl font-medium"><Upload size={20} /> Upload New Model</h2>
@@ -112,6 +125,20 @@ export const AdminDashboardPage = () => {
             </div>
           </div>
         </div>
+        ) : (
+          <div className="rounded-2xl border border-white/10 bg-zinc-900 p-6">
+            <h2 className="mb-4 text-xl font-medium">Accessories Catalog</h2>
+            <p className="mb-6 text-sm text-zinc-400">Manage the accessory lineup exposed to clients from the configurator.</p>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {accessoryCatalog.map((accessory) => (
+                <div key={accessory.id} className="rounded-xl border border-white/10 bg-black/40 p-4">
+                  <div className="text-sm font-medium text-white">{accessory.name}</div>
+                  <div className="mt-2 text-xs text-zinc-500">{accessory.price > 0 ? `+${formatPrice(accessory.price)}` : 'Included'}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

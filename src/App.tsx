@@ -8,8 +8,9 @@ import { LandingPage } from './pages/LandingPage';
 import { useAppStore } from './store';
 
 export default function App() {
-  const { currentView } = useAppStore();
+  const { currentView, activeVehicleId, vehicles } = useAppStore();
   const [activeCategory, setActiveCategory] = useState('exterior_paint');
+  const activeVehicle = vehicles.find((vehicle) => vehicle.id === activeVehicleId) ?? null;
 
   return (
     <div className="relative h-screen w-full overflow-hidden">
@@ -18,10 +19,10 @@ export default function App() {
         {currentView === 'client_grid' && <ClientGridPage key="grid" />}
         {currentView === 'admin_dashboard' && <AdminDashboardPage key="admin" />}
 
-        {currentView === 'configurator' && (
+        {currentView === 'configurator' && activeVehicle && (
           <div key="config" className="relative h-full w-full">
             <ThreeViewer />
-            <ConfigPanel vehicle={useAppStore.getState().vehicles.find((vehicle) => vehicle.id === useAppStore.getState().activeVehicleId)!} activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
+            <ConfigPanel vehicle={activeVehicle} activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
           </div>
         )}
       </AnimatePresence>

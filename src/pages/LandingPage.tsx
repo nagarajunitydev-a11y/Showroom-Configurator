@@ -18,9 +18,9 @@ export const LandingPage = () => {
         <div className="h-[800px] w-[800px] rounded-full bg-blue-500/20 blur-[100px]" />
       </div>
 
-      <div className="z-10 max-w-xl p-8 text-center">
-        <h1 className="mb-4 text-5xl font-light tracking-tight">Enterprise Configurator</h1>
-        <p className="mb-12 text-zinc-400">Data-driven automotive visualization platform. Connect immersive 3D showrooms with your internal CMS seamlessly.</p>
+      <div className="z-10 max-w-xl p-4 text-center sm:p-8">
+        <h1 className="mb-4 text-4xl font-light tracking-tight sm:text-5xl">Enterprise Configurator</h1>
+        <p className="mb-8 text-sm text-zinc-400 sm:mb-12 sm:text-base">Data-driven automotive visualization platform. Connect immersive 3D showrooms with your internal CMS seamlessly.</p>
 
         {!showLogin ? (
           <div className="flex flex-col justify-center gap-4 md:flex-row">

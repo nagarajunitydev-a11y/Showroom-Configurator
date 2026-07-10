@@ -25,6 +25,18 @@ const DEFAULT_CATEGORIES: VehicleCategory[] = [
     ],
     defaultOptionId: 'w_20_silver',
   },
+  {
+    id: 'accessories',
+    name: 'Accessories',
+    icon: 'Package',
+    options: [
+      { id: 'a_none', name: 'No Accessories', price: 0, type: MATERIAL_TYPES.CARBON },
+      { id: 'a_sport_pkg', name: 'Sport Package', price: 1800, type: MATERIAL_TYPES.CARBON },
+      { id: 'a_premium_audio', name: 'Premium Audio', price: 2200, type: MATERIAL_TYPES.CARBON },
+      { id: 'a_full_interior', name: 'Full Interior Upgrade', price: 3200, type: MATERIAL_TYPES.CARBON },
+    ],
+    defaultOptionId: 'a_none',
+  },
 ];
 
 const INITIAL_VEHICLES: Vehicle[] = [
