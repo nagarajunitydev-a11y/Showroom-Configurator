@@ -271,6 +271,17 @@ export const ThreeViewer = () => {
     controls.maxDistance = 12;
     controls.maxPolarAngle = Math.PI / 2 + 0.05;
 
+    // Disable right-click and drag interaction
+    // Configure mouse buttons: LEFT=rotate, MIDDLE=zoom, RIGHT=disabled
+    // Using numeric constants: ROTATE=0, ZOOM=1, PAN=2
+    controls.mouseButtons = {
+      LEFT: 0,      // ROTATE
+      MIDDLE: 1,    // ZOOM
+      RIGHT: null,  // Disabled
+    };
+    // Also disable pan to ensure right-click has no effect
+    controls.enablePan = false;
+
     // CRITICAL: Set orbit target to the true geometric center (pivot)
     // This ensures the camera orbits around the vehicle's center, not an offset point
     if (pivotGroup) {
