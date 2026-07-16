@@ -1,16 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { useAppStore } from '../store';
-import { recalculatePivotAfterScale, getOrbitControlsTarget, validateVehiclePivot, debugVehiclePivot } from '../utils/pivotUtils';
+import { usePremiumCamera } from '../hooks/usePremiumCamera';
+import { PremiumCameraConfig } from '../utils/PremiumVehicleCamera';
 
 interface ThreeRefState {
   mats: Record<string, THREE.Material>;
   camera: THREE.PerspectiveCamera;
-  controls: OrbitControls;
-  state: { targetCameraPos: THREE.Vector3 | null };
+  scene: THREE.Scene;
+  renderer: THREE.WebGLRenderer;
+  modelGroup: THREE.Group;
 }
 
 export const ThreeViewer = () => {
@@ -18,18 +19,36 @@ export const ThreeViewer = () => {
   const threeRef = useRef<ThreeRefState | null>(null);
   const [isModelLoading, setIsModelLoading] = useState(false);
   const [modelLoadProgress, setModelLoadProgress] = useState(0);
+  const [vehicleGroup, setVehicleGroup] = useState<THREE.Object3D | null>(null);
 
   const { selections, activeVehicleId, vehicles, activeCameraPreset } = useAppStore();
   const vehicle = vehicles.find((entry) => entry.id === activeVehicleId);
 
+  // Premium camera configuration
+  const cameraConfig: PremiumCameraConfig = {
+    viewportPercentage: 75, // Keep vehicle at 75% of viewport (70-85% range)
+    defaultFov: 35, // Cinematic field of view
+    minFov: 30,
+    maxFov: 40,
+    defaultHorizontalAngle: 0.61, // ~35° three-quarter view
+    defaultVerticalAngle: 0.31, // ~18° elevation
+    minOrbitDistance: 2.5,
+    maxOrbitDistance: 25,
+    verticalAngleConstraint: Math.PI / 2 + 0.1,
+    animationDuration: 800,
+    orbitDamping: 0.08,
+    zoomDamping: 0.1,
+    orbitSensitivity: 0.01,
+    zoomSensitivity: 0.1,
+  };
+
+  // Scene setup
   useEffect(() => {
     if (!containerRef.current || !vehicle) return;
 
     let isMounted = true;
     setIsModelLoading(Boolean(vehicle.url));
     setModelLoadProgress(0);
-
-    const variant = vehicle.variants.find((entry) => entry.id === vehicle.activeVariantId) ?? vehicle.variants[0] ?? null;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color('#050505');
@@ -44,9 +63,11 @@ export const ThreeViewer = () => {
     renderer.toneMappingExposure = 1.2;
     containerRef.current.appendChild(renderer.domElement);
 
+    // Environment
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
     scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
 
+    // Lighting
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
     scene.add(ambientLight);
 
@@ -57,6 +78,7 @@ export const ThreeViewer = () => {
     dirLight.shadow.mapSize.height = 1024;
     scene.add(dirLight);
 
+    // Materials
     const mats = {
       body: new THREE.MeshPhysicalMaterial({ clearcoatRoughness: 0.1, envMapIntensity: 1.5 }),
       glass: new THREE.MeshPhysicalMaterial({
@@ -78,9 +100,7 @@ export const ThreeViewer = () => {
     const modelGroup = new THREE.Group();
     scene.add(modelGroup);
 
-    // Keep reference to pivotGroup so we can update controls.target once controls are created
-    let pivotGroup: THREE.Group | null = null;
-
+    // Load vehicle model
     if (vehicle.url) {
       const loader = new GLTFLoader();
       loader.load(
@@ -91,33 +111,17 @@ export const ThreeViewer = () => {
           setModelLoadProgress(100);
 
           const model = gltf.scene;
-          model.name = 'LoadedVehicle';
 
-          // Calculate bounds and scale
           const box = new THREE.Box3().setFromObject(model);
+          const center = box.getCenter(new THREE.Vector3());
           const size = box.getSize(new THREE.Vector3());
           const maxDim = Math.max(size.x, size.y, size.z);
           const scale = 4.0 / maxDim;
 
-          // Apply scale and ensure matrixWorld is updated before computing bounds in pivot utility
           model.scale.set(scale, scale, scale);
-          model.updateMatrixWorld(true);
+          model.position.set(-center.x * scale, -box.min.y * scale, -center.z * scale);
 
-          // Create a proper pivot group that centers geometry at the world origin
-          const pivotResult = recalculatePivotAfterScale(model, scale, modelGroup);
-          pivotGroup = pivotResult.pivotGroup;
-
-          // Validate pivot
-          const validation = validateVehiclePivot(pivotGroup);
-          if (!validation.isValid) {
-            console.warn('⚠️ Vehicle pivot validation failed:', validation.issues);
-            debugVehiclePivot(pivotGroup, 'Loaded Vehicle');
-          } else {
-            console.log('✓ Vehicle pivot correctly configured');
-          }
-
-          // Apply materials to meshes (model is already parented into pivot inside recalculatePivotAfterScale)
-          pivotGroup.traverse((child) => {
+          model.traverse((child) => {
             if (child instanceof THREE.Mesh) {
               child.castShadow = true;
               child.receiveShadow = true;
@@ -134,6 +138,8 @@ export const ThreeViewer = () => {
             }
           });
 
+          modelGroup.add(model);
+          setVehicleGroup(modelGroup);
         },
         (progressEvent) => {
           if (!isMounted) return;
@@ -145,7 +151,7 @@ export const ThreeViewer = () => {
           console.error('Failed to load 3D model', error);
           setIsModelLoading(false);
           setModelLoadProgress(100);
-        },
+        }
       );
     } else {
       setIsModelLoading(false);
@@ -162,7 +168,12 @@ export const ThreeViewer = () => {
       cabin.position.set(0, 1.05, -0.2);
       carGroup.add(cabin);
 
-      const wheelPositions: Array<[number, number, number]> = [[-0.95, 0.2, 1.4], [0.95, 0.2, 1.4], [-0.95, 0.2, -1.4], [0.95, 0.2, -1.4]];
+      const wheelPositions: Array<[number, number, number]> = [
+        [-0.95, 0.2, 1.4],
+        [0.95, 0.2, 1.4],
+        [-0.95, 0.2, -1.4],
+        [0.95, 0.2, -1.4],
+      ];
       wheelPositions.forEach((pos) => {
         const wGroup = new THREE.Group();
         wGroup.position.set(pos[0], pos[1], pos[2]);
@@ -181,52 +192,36 @@ export const ThreeViewer = () => {
         carGroup.add(wGroup);
       });
       modelGroup.add(carGroup);
+      setVehicleGroup(modelGroup);
     }
 
+    // Shadow plane
     const shadowMat = new THREE.ShadowMaterial({ opacity: 0.5 });
     const shadowPlane = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), shadowMat);
     shadowPlane.rotation.x = -Math.PI / 2;
     shadowPlane.receiveShadow = true;
     scene.add(shadowPlane);
 
-    const camera = new THREE.PerspectiveCamera((variant?.cameraSettings?.zoom ?? vehicle.cameraSettings?.zoom ?? 45), containerRef.current.clientWidth / containerRef.current.clientHeight, 0.1, 100);
-    camera.position.set(...(variant?.cameraSettings?.position ?? vehicle.cameraSettings?.position ?? [5, 2, 5]));
+    // Camera setup
+    const camera = new THREE.PerspectiveCamera(
+      cameraConfig.defaultFov,
+      containerRef.current.clientWidth / containerRef.current.clientHeight,
+      cameraConfig.viewportPercentage ? 0.1 : 0.1,
+      100
+    );
+    camera.position.set(5, 2, 5);
 
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.minDistance = 3;
-    controls.maxDistance = 12;
-    controls.maxPolarAngle = Math.PI / 2 + 0.05;
+    threeRef.current = { mats, camera, scene, renderer, modelGroup };
 
-    // If a pivot was already created during model load, point the controls at the pivot world position.
-    // Note: pivotGroup may be set asynchronously by the loader callback — it's safe to check here.
-    try {
-      if (typeof (pivotGroup) !== 'undefined' && pivotGroup) {
-        const orbitTarget = getOrbitControlsTarget(pivotGroup, 0.5);
-        controls.target.copy(orbitTarget);
-      } else {
-        controls.target.set(...(variant?.cameraSettings?.target ?? vehicle.cameraSettings?.target ?? [0, 0.5, 0]));
-      }
-    } catch (e) {
-      // Defensive: if pivotGroup is not yet defined or getOrbitControlsTarget fails, use fallback
-      controls.target.set(...(variant?.cameraSettings?.target ?? vehicle.cameraSettings?.target ?? [0, 0.5, 0]));
-    }
-
-    const state = { targetCameraPos: null as THREE.Vector3 | null };
-    controls.addEventListener('start', () => {
-      state.targetCameraPos = null;
-    });
-
+    // Render loop
     let frameId = 0;
     const animate = () => {
       frameId = window.requestAnimationFrame(animate);
-      if (state.targetCameraPos) camera.position.lerp(state.targetCameraPos, 0.05);
-      controls.update();
       renderer.render(scene, camera);
     };
     animate();
 
+    // Resize handler
     const handleResize = () => {
       if (!containerRef.current) return;
       camera.aspect = containerRef.current.clientWidth / containerRef.current.clientHeight;
@@ -235,28 +230,10 @@ export const ThreeViewer = () => {
     };
     window.addEventListener('resize', handleResize);
 
-    threeRef.current = { mats, camera, controls, state, };
-
-    // If the model loads after controls are created, the loader callback sets pivotGroup and
-    // we should update controls.target to match the pivot's world position so the camera
-    // always orbits the true vehicle center.
-    // The loader callback may have already set pivotGroup; check and update now.
-    try {
-      // @ts-ignore - pivotGroup is a local to this effect; using the variable we declared above
-      if (typeof (pivotGroup) !== 'undefined' && pivotGroup) {
-        const orbitTarget = getOrbitControlsTarget(pivotGroup, 0.5);
-        controls.target.copy(orbitTarget);
-        controls.update();
-      }
-    } catch (e) {
-      // ignore
-    }
-
     return () => {
       isMounted = false;
       window.removeEventListener('resize', handleResize);
       window.cancelAnimationFrame(frameId);
-      controls.dispose();
       renderer.dispose();
       if (containerRef.current && renderer.domElement) {
         containerRef.current.removeChild(renderer.domElement);
@@ -264,6 +241,16 @@ export const ThreeViewer = () => {
     };
   }, [vehicle]);
 
+  // Use premium camera hook
+  const { resetCamera, focusOnPart, focusOnPartList, animateTo, getState } = usePremiumCamera({
+    camera: threeRef.current?.camera ?? null,
+    container: containerRef.current,
+    vehicleGroup,
+    cameraConfig,
+    autoFrame: true,
+  });
+
+  // Material updates for selections
   useEffect(() => {
     if (!threeRef.current || !vehicle) return;
     const { mats } = threeRef.current;
@@ -290,16 +277,16 @@ export const ThreeViewer = () => {
     }
   }, [selections, vehicle]);
 
+  // Camera preset handling
   useEffect(() => {
     if (!threeRef.current || !vehicle) return;
-    const { state } = threeRef.current;
     const variant = vehicle.variants.find((entry) => entry.id === vehicle.activeVariantId) ?? vehicle.variants[0] ?? null;
 
     if ((variant?.cameras ?? vehicle.cameras)[activeCameraPreset]) {
       const [x, y, z] = (variant?.cameras ?? vehicle.cameras)[activeCameraPreset];
-      state.targetCameraPos = new THREE.Vector3(x, y, z);
+      animateTo({ horizontalAngle: x, verticalAngle: y });
     }
-  }, [activeCameraPreset, vehicle]);
+  }, [activeCameraPreset, vehicle, animateTo]);
 
   return (
     <div className="absolute inset-0 z-0 h-full w-full bg-gradient-to-b from-zinc-900 to-black">
