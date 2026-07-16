@@ -5,6 +5,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { useAppStore } from '../store';
 import { usePremiumCamera } from '../hooks/usePremiumCamera';
 import { PremiumCameraConfig } from '../utils/PremiumVehicleCamera';
+import { createVehiclePivot } from '../utils/pivotUtils';
 
 interface ThreeRefState {
   mats: Record<string, THREE.Material>;
@@ -100,6 +101,13 @@ export const ThreeViewer = () => {
     const modelGroup = new THREE.Group();
     scene.add(modelGroup);
 
+    const shadowMat = new THREE.ShadowMaterial({ opacity: 0.5 });
+    const shadowPlane = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), shadowMat);
+    shadowPlane.rotation.x = -Math.PI / 2;
+    shadowPlane.receiveShadow = true;
+    shadowPlane.position.y = 0;
+    scene.add(shadowPlane);
+
     // Load vehicle model
     if (vehicle.url) {
       const loader = new GLTFLoader();
@@ -113,13 +121,12 @@ export const ThreeViewer = () => {
           const model = gltf.scene;
 
           const box = new THREE.Box3().setFromObject(model);
-          const center = box.getCenter(new THREE.Vector3());
           const size = box.getSize(new THREE.Vector3());
           const maxDim = Math.max(size.x, size.y, size.z);
           const scale = 4.0 / maxDim;
 
           model.scale.set(scale, scale, scale);
-          model.position.set(-center.x * scale, -box.min.y * scale, -center.z * scale);
+          model.position.set(0, 0, 0);
 
           model.traverse((child) => {
             if (child instanceof THREE.Mesh) {
@@ -138,8 +145,9 @@ export const ThreeViewer = () => {
             }
           });
 
-          modelGroup.add(model);
-          setVehicleGroup(modelGroup);
+          const pivotResult = createVehiclePivot(model, scene, modelGroup);
+          setVehicleGroup(pivotResult.pivotGroup);
+          shadowPlane.position.y = -pivotResult.bounds.height / 2 - 0.05;
         },
         (progressEvent) => {
           if (!isMounted) return;
@@ -191,16 +199,10 @@ export const ThreeViewer = () => {
 
         carGroup.add(wGroup);
       });
-      modelGroup.add(carGroup);
-      setVehicleGroup(modelGroup);
+      const pivotResult = createVehiclePivot(carGroup, scene, modelGroup);
+      setVehicleGroup(pivotResult.pivotGroup);
+      shadowPlane.position.y = -pivotResult.bounds.center.y - 0.05;
     }
-
-    // Shadow plane
-    const shadowMat = new THREE.ShadowMaterial({ opacity: 0.5 });
-    const shadowPlane = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), shadowMat);
-    shadowPlane.rotation.x = -Math.PI / 2;
-    shadowPlane.receiveShadow = true;
-    scene.add(shadowPlane);
 
     // Camera setup
     const camera = new THREE.PerspectiveCamera(
@@ -242,7 +244,7 @@ export const ThreeViewer = () => {
   }, [vehicle]);
 
   // Use premium camera hook
-  const { resetCamera, focusOnPart, focusOnPartList, animateTo, getState } = usePremiumCamera({
+  const { animateTo } = usePremiumCamera({
     camera: threeRef.current?.camera ?? null,
     container: containerRef.current,
     vehicleGroup,
@@ -283,7 +285,7 @@ export const ThreeViewer = () => {
     const variant = vehicle.variants.find((entry) => entry.id === vehicle.activeVariantId) ?? vehicle.variants[0] ?? null;
 
     if ((variant?.cameras ?? vehicle.cameras)[activeCameraPreset]) {
-      const [x, y, z] = (variant?.cameras ?? vehicle.cameras)[activeCameraPreset];
+      const [x, y] = (variant?.cameras ?? vehicle.cameras)[activeCameraPreset];
       animateTo({ horizontalAngle: x, verticalAngle: y });
     }
   }, [activeCameraPreset, vehicle, animateTo]);

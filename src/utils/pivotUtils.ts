@@ -41,7 +41,7 @@ export function calculateVehicleBounds(object: THREE.Object3D): {
  */
 export function createVehiclePivot(
   vehicleMesh: THREE.Object3D,
-  scene: THREE.Scene,
+  _scene: THREE.Scene,
   modelGroup: THREE.Group
 ): {
   pivotGroup: THREE.Group;
@@ -50,7 +50,7 @@ export function createVehiclePivot(
 } {
   // Calculate current bounds of the vehicle mesh
   const bounds = calculateVehicleBounds(vehicleMesh);
-  const { center, size } = bounds;
+  const { center } = bounds;
 
   // Create pivot group - this will be our rotation center (always at world origin)
   const pivotGroup = new THREE.Group();

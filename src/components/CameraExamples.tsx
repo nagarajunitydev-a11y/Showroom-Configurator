@@ -9,7 +9,7 @@
  * - Error handling and debugging
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import * as THREE from 'three';
 import { usePremiumCamera } from '../hooks/usePremiumCamera';
 import { PremiumCameraConfig } from '../utils/PremiumVehicleCamera';
@@ -19,8 +19,8 @@ import { PremiumCameraConfig } from '../utils/PremiumVehicleCamera';
  */
 export function BasicVehicleViewer() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [camera, setCamera] = useState<THREE.PerspectiveCamera | null>(null);
-  const [vehicleGroup, setVehicleGroup] = useState<THREE.Object3D | null>(null);
+  const [camera] = useState<THREE.PerspectiveCamera | null>(null);
+  const [vehicleGroup] = useState<THREE.Object3D | null>(null);
 
   const { resetCamera } = usePremiumCamera({
     camera,
@@ -47,8 +47,8 @@ export function BasicVehicleViewer() {
  */
 export function CustomCameraViewer() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [camera, setCamera] = useState<THREE.PerspectiveCamera | null>(null);
-  const [vehicleGroup, setVehicleGroup] = useState<THREE.Object3D | null>(null);
+  const [camera] = useState<THREE.PerspectiveCamera | null>(null);
+  const [vehicleGroup] = useState<THREE.Object3D | null>(null);
 
   // Customize camera behavior for specific feel
   const cameraConfig: PremiumCameraConfig = {
@@ -80,7 +80,7 @@ export function CustomCameraViewer() {
     animationDuration: 600,
   };
 
-  const { resetCamera, focusOnPart } = usePremiumCamera({
+  usePremiumCamera({
     camera,
     container: containerRef.current,
     vehicleGroup,
@@ -100,11 +100,11 @@ export function CustomCameraViewer() {
  */
 export function PartFocusedViewer() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [camera, setCamera] = useState<THREE.PerspectiveCamera | null>(null);
-  const [vehicleGroup, setVehicleGroup] = useState<THREE.Object3D | null>(null);
+  const [camera] = useState<THREE.PerspectiveCamera | null>(null);
+  const [vehicleGroup] = useState<THREE.Object3D | null>(null);
   const [focusedPart, setFocusedPart] = useState<string | null>(null);
 
-  const { resetCamera, focusOnPart, focusOnPartList, animateTo } = usePremiumCamera({
+  const { resetCamera, focusOnPart, focusOnPartList } = usePremiumCamera({
     camera,
     container: containerRef.current,
     vehicleGroup,
@@ -116,7 +116,7 @@ export function PartFocusedViewer() {
 
     const part = vehicleGroup.getObjectByName(partName);
     if (part) {
-      focusOnPart(part, true, 800);
+      focusOnPart(part, 800);
       setFocusedPart(partName);
     }
   };
@@ -220,8 +220,8 @@ export function PartFocusedViewer() {
  */
 export function AdvancedAnimationViewer() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [camera, setCamera] = useState<THREE.PerspectiveCamera | null>(null);
-  const [vehicleGroup, setVehicleGroup] = useState<THREE.Object3D | null>(null);
+  const [camera] = useState<THREE.PerspectiveCamera | null>(null);
+  const [vehicleGroup] = useState<THREE.Object3D | null>(null);
 
   const { animateTo } = usePremiumCamera({
     camera,
@@ -331,8 +331,8 @@ export function AdvancedAnimationViewer() {
  */
 export function ConfigurationPanelViewer() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [camera, setCamera] = useState<THREE.PerspectiveCamera | null>(null);
-  const [vehicleGroup, setVehicleGroup] = useState<THREE.Object3D | null>(null);
+  const [camera] = useState<THREE.PerspectiveCamera | null>(null);
+  const [vehicleGroup] = useState<THREE.Object3D | null>(null);
   const [config, setConfig] = useState<PremiumCameraConfig>({
     viewportPercentage: 75,
     defaultFov: 35,
@@ -457,8 +457,8 @@ export function ConfigurationPanelViewer() {
  */
 export function ProductionVehicleViewer() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [camera, setCamera] = useState<THREE.PerspectiveCamera | null>(null);
-  const [vehicleGroup, setVehicleGroup] = useState<THREE.Object3D | null>(null);
+  const [camera] = useState<THREE.PerspectiveCamera | null>(null);
+  const [vehicleGroup] = useState<THREE.Object3D | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const cameraConfig: PremiumCameraConfig = {
@@ -478,7 +478,7 @@ export function ProductionVehicleViewer() {
     zoomSensitivity: 0.1,
   };
 
-  const { resetCamera, focusOnPart } = usePremiumCamera({
+  const { resetCamera } = usePremiumCamera({
     camera,
     container: containerRef.current,
     vehicleGroup,
@@ -489,26 +489,6 @@ export function ProductionVehicleViewer() {
       console.log('Camera state:', premiumCamera.getState());
     },
   });
-
-  const safeFocusOnPart = (partName: string) => {
-    try {
-      if (!vehicleGroup) {
-        setError('Vehicle not loaded yet');
-        return;
-      }
-
-      const part = vehicleGroup.getObjectByName(partName);
-      if (!part) {
-        setError(`Part "${partName}" not found in vehicle model`);
-        return;
-      }
-
-      focusOnPart(part, true, 800);
-      setError(null);
-    } catch (err) {
-      setError(`Error focusing on part: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    }
-  };
 
   return (
     <div className="w-full h-full relative">

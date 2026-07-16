@@ -5,7 +5,6 @@ import {
   positionToOrbitAngles,
   easeInOutCubic,
   clamp,
-  normalizeAngle,
   lerpAngle,
 } from '../utils/cameraUtils';
 
@@ -78,8 +77,6 @@ export class PremiumVehicleCamera {
   private orbitState: OrbitState;
   private animationState: AnimationState | null = null;
   private isUserInteracting = false;
-  private raycaster = new THREE.Raycaster();
-  private mouse = new THREE.Vector2();
 
   // Event listeners tracking
   private mouseDownListener: ((e: MouseEvent) => void) | null = null;
@@ -203,7 +200,6 @@ export class PremiumVehicleCamera {
     // Calculate bounding box of vehicle
     const boundingBox = new THREE.Box3().setFromObject(vehicleGroup);
     const center = boundingBox.getCenter(new THREE.Vector3());
-    const size = boundingBox.getSize(new THREE.Vector3());
 
     // Update target center
     this.targetCenter.copy(center);
@@ -351,7 +347,7 @@ export class PremiumVehicleCamera {
   /**
    * Update camera position based on current state (called every frame)
    */
-  public update(deltaTime: number = 0) {
+  public update(_deltaTime: number = 0) {
     // Handle animation
     if (this.animationState && this.animationState.isAnimating) {
       const elapsed = performance.now() - this.animationState.startTime;

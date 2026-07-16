@@ -11,15 +11,18 @@ export function calculateFramingForBoundingBox(
   aspect: number = 1.6
 ): { distance: number; fov: number } {
   const size = boundingBox.getSize(new THREE.Vector3());
-  const maxDim = Math.max(size.x, size.y, size.z);
+  const targetHeight = size.y;
+  const targetWidth = size.x;
 
   // Calculate FOV in radians
   const vFOV = (fov * Math.PI) / 180;
+  const hFOV = 2 * Math.atan(Math.tan(vFOV / 2) * aspect);
 
   // Calculate required distance to frame the object at the desired viewport percentage
-  // We use the vertical FOV since that's typically the limiting factor
-  const targetHeight = (maxDim / viewportPercentage) * 100;
-  const distance = targetHeight / (2 * Math.tan(vFOV / 2));
+  const viewportFactor = viewportPercentage / 100;
+  const distanceByHeight = targetHeight / (2 * Math.tan(vFOV / 2) * viewportFactor);
+  const distanceByWidth = targetWidth / (2 * Math.tan(hFOV / 2) * viewportFactor);
+  const distance = Math.max(distanceByHeight, distanceByWidth, 0.1);
 
   return { distance, fov };
 }
