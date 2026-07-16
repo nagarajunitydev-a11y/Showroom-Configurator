@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
@@ -15,12 +15,18 @@ interface ThreeRefState {
 export const ThreeViewer = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const threeRef = useRef<ThreeRefState | null>(null);
+  const [isModelLoading, setIsModelLoading] = useState(false);
+  const [modelLoadProgress, setModelLoadProgress] = useState(0);
 
   const { selections, activeVehicleId, vehicles, activeCameraPreset } = useAppStore();
   const vehicle = vehicles.find((entry) => entry.id === activeVehicleId);
 
   useEffect(() => {
     if (!containerRef.current || !vehicle) return;
+
+    let isMounted = true;
+    setIsModelLoading(Boolean(vehicle.url));
+    setModelLoadProgress(0);
 
     const variant = vehicle.variants.find((entry) => entry.id === vehicle.activeVariantId) ?? vehicle.variants[0] ?? null;
 
@@ -73,10 +79,16 @@ export const ThreeViewer = () => {
 
     if (vehicle.url) {
       const loader = new GLTFLoader();
-      loader.load(vehicle.url, (gltf) => {
-        const model = gltf.scene;
+      loader.load(
+        vehicle.url,
+        (gltf) => {
+          if (!isMounted) return;
+          setIsModelLoading(false);
+          setModelLoadProgress(100);
 
-        const box = new THREE.Box3().setFromObject(model);
+          const model = gltf.scene;
+
+          const box = new THREE.Box3().setFromObject(model);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
         const maxDim = Math.max(size.x, size.y, size.z);
@@ -102,9 +114,23 @@ export const ThreeViewer = () => {
           }
         });
 
-        modelGroup.add(model);
-      });
+          modelGroup.add(model);
+        },
+        (progressEvent) => {
+          if (!isMounted) return;
+          const progress = progressEvent.total ? (progressEvent.loaded / progressEvent.total) * 100 : 0;
+          setModelLoadProgress(progress);
+        },
+        (error) => {
+          if (!isMounted) return;
+          console.error('Failed to load 3D model', error);
+          setIsModelLoading(false);
+          setModelLoadProgress(100);
+        },
+      );
     } else {
+      setIsModelLoading(false);
+      setModelLoadProgress(100);
       const carGroup = new THREE.Group();
       carGroup.position.set(0, 0.4, 0);
 
@@ -180,6 +206,7 @@ export const ThreeViewer = () => {
     threeRef.current = { mats, camera, controls, state };
 
     return () => {
+      isMounted = false;
       window.removeEventListener('resize', handleResize);
       window.cancelAnimationFrame(frameId);
       controls.dispose();
@@ -227,5 +254,20 @@ export const ThreeViewer = () => {
     }
   }, [activeCameraPreset, vehicle]);
 
-  return <div ref={containerRef} className="absolute inset-0 z-0 h-full w-full bg-gradient-to-b from-zinc-900 to-black" />;
+  return (
+    <div className="absolute inset-0 z-0 h-full w-full bg-gradient-to-b from-zinc-900 to-black">
+      {isModelLoading && (
+        <div className="absolute inset-x-0 top-0 z-10 flex flex-col gap-2 bg-black/40 px-4 py-3 backdrop-blur-sm sm:px-6">
+          <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.3em] text-zinc-300">
+            <span>Loading 3D model</span>
+            <span>{Math.round(modelLoadProgress)}%</span>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+            <div className="h-full rounded-full bg-white transition-all duration-300" style={{ width: `${Math.max(6, modelLoadProgress)}%` }} />
+          </div>
+        </div>
+      )}
+      <div ref={containerRef} className="absolute inset-0 h-full w-full" />
+    </div>
+  );
 };

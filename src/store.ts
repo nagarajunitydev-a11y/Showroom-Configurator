@@ -86,14 +86,17 @@ const createDefaultVehicle = (vehicleData: Partial<Vehicle> = {}): Vehicle => ({
   cameraSettings: vehicleData.cameraSettings ?? DEFAULT_CAMERA_SETTINGS,
 });
 
+const bikeModelUrl = new URL('./assets/BikeModel.glb', import.meta.url).href;
+
 const INITIAL_VEHICLES: Vehicle[] = [
   createDefaultVehicle({
     id: 'v-001',
-    type: 'Car',
-    brand: 'Aero',
-    model: 'Stratos Concept',
+    type: 'Bike',
+    brand: 'Sample',
+    model: 'Bike Model',
     year: 2026,
     basePrice: 85000,
+    url: bikeModelUrl,
   }),
 ];
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Palette, CircleDot, Package, Settings2, Check, Camera as CameraIcon, Undo2, Redo2, ArrowLeft, ChevronRight, Info } from 'lucide-react';
+import { Palette, CircleDot, Package, Settings2, Check, Camera as CameraIcon, Undo2, Redo2, ArrowLeft, ChevronRight, Info, Maximize2, Minimize2 } from 'lucide-react';
 import { FormattedPrice } from './FormattedPrice';
 import { formatPrice } from '../utils/price';
 import { MATERIAL_TYPES, type Vehicle } from '../types';
@@ -38,7 +38,9 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
             <div className="text-[10px] uppercase tracking-[0.3em] text-zinc-400">{vehicle.brand}</div>
             <div className="text-sm font-medium">{vehicle.model}</div>
           </div>
-          <button onClick={() => setIsExpanded(true)} className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-black">Expand</button>
+          <button onClick={() => setIsExpanded(true)} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white shadow-[0_0_12px_rgba(56,189,248,0.1)] transition-all hover:bg-white/10" title="Expand panels">
+            <Maximize2 size={18} />
+          </button>
         </div>
       </motion.div>
     );
@@ -46,43 +48,49 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pointer-events-none absolute inset-0 z-10 flex flex-col justify-between font-sans text-white">
-      <header className="pointer-events-auto flex w-full flex-col gap-4 p-3 sm:p-4 md:flex-row md:items-start md:justify-between md:p-6">
+      <header className="pointer-events-auto mx-3 mt-3 flex w-auto flex-col gap-3 rounded-[24px] border border-white/15 bg-black/50 px-3 py-2 shadow-[0_0_0_1px_rgba(255,255,255,0.03),0_0_24px_rgba(56,189,248,0.12)] backdrop-blur-xl sm:mx-4 sm:px-4 sm:py-2.5 md:mx-6 md:flex-row md:items-start md:justify-between md:px-5 md:py-4">
         <div className="flex flex-col drop-shadow-md">
           <button onClick={() => setView('client_grid')} className="mb-3 flex w-fit items-center gap-2 text-sm font-medium text-zinc-400 transition-colors hover:text-white">
             <ArrowLeft size={16} /> Back to Showroom
           </button>
           <h2 className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-400">{vehicle.brand}</h2>
-          <h1 className="mt-1 text-3xl font-light tracking-tight sm:text-4xl md:text-5xl">{vehicle.model}</h1>
+          <h1 className="mt-1 text-2xl font-light tracking-tight sm:text-3xl md:text-4xl">{vehicle.model}</h1>
         </div>
 
         <div className="flex items-center gap-2">
-          <button onClick={() => setIsExpanded(false)} className="rounded-full border border-white/10 bg-white/5 p-3 backdrop-blur-xl transition-all hover:bg-white/10" title="Shrink panel">
-            <ChevronRight size={18} className="rotate-180" />
+          <button onClick={() => setIsExpanded((value) => !value)} className="rounded-full border border-white/15 bg-white/5 p-3 shadow-[0_0_12px_rgba(56,189,248,0.1)] backdrop-blur-xl transition-all hover:bg-white/10" title={isExpanded ? 'Collapse side panels' : 'Expand side panels'}>
+            {isExpanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
           </button>
-          <button onClick={undo} disabled={historyIndex <= 0} className="rounded-full border border-white/10 bg-white/5 p-3 backdrop-blur-xl transition-all hover:bg-white/10 disabled:opacity-30">
+          <button onClick={undo} disabled={historyIndex <= 0} className="rounded-full border border-white/15 bg-white/5 p-3 shadow-[0_0_12px_rgba(56,189,248,0.1)] backdrop-blur-xl transition-all hover:bg-white/10 disabled:opacity-30">
             <Undo2 size={18} />
           </button>
-          <button onClick={redo} disabled={historyIndex >= history.length - 1} className="rounded-full border border-white/10 bg-white/5 p-3 backdrop-blur-xl transition-all hover:bg-white/10 disabled:opacity-30">
+          <button onClick={redo} disabled={historyIndex >= history.length - 1} className="rounded-full border border-white/15 bg-white/5 p-3 shadow-[0_0_12px_rgba(56,189,248,0.1)] backdrop-blur-xl transition-all hover:bg-white/10 disabled:opacity-30">
             <Redo2 size={18} />
           </button>
         </div>
       </header>
 
-      <div className="flex flex-1 flex-col items-end justify-end p-2 pb-24 pointer-events-none sm:p-3 md:flex-row md:items-stretch md:p-6 md:pb-6">
-        <div className="pointer-events-auto absolute bottom-24 left-3 flex flex-col gap-2 sm:bottom-28 sm:left-6 sm:gap-3 md:bottom-1/2 md:translate-y-1/2">
-          {Object.keys(vehicle.cameras).map((preset) => (
-            <button
-              key={preset}
-              onClick={() => setCameraPreset(preset)}
-              className={`rounded-full border p-2.5 backdrop-blur-md transition-all sm:p-3 ${activeCameraPreset === preset ? 'border-white bg-white text-black' : 'border-white/10 bg-black/40 text-white hover:bg-black/60'}`}
-              title={`View: ${preset}`}
-            >
-              <CameraIcon size={16} className="sm:h-[18px] sm:w-[18px]" />
-            </button>
-          ))}
-        </div>
+      <div className="flex flex-1 flex-col items-end justify-end p-2 pb-24 pointer-events-none sm:p-3 md:flex-row md:items-stretch md:p-4 md:pb-6">
+        {!isExpanded ? null : (
+          <div className="pointer-events-auto absolute bottom-24 left-3 flex flex-col gap-2 sm:bottom-28 sm:left-6 sm:gap-3 md:bottom-1/2 md:translate-y-1/2">
+            {Object.keys(vehicle.cameras).map((preset) => (
+              <button
+                key={preset}
+                onClick={() => setCameraPreset(preset)}
+                className={`rounded-full border p-2.5 shadow-[0_0_12px_rgba(56,189,248,0.1)] backdrop-blur-md transition-all sm:p-3 ${activeCameraPreset === preset ? 'border-cyan-300/70 bg-white text-black shadow-[0_0_18px_rgba(255,255,255,0.16)]' : 'border-white/15 bg-black/40 text-white hover:bg-black/60 hover:shadow-[0_0_16px_rgba(56,189,248,0.2)]'}`}
+                title={`View: ${preset}`}
+              >
+                {preset.toLowerCase() === 'perception' ? (
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.25em] sm:text-[11px]">PER</span>
+                ) : (
+                  <CameraIcon size={16} className="sm:h-[18px] sm:w-[18px]" />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
 
-        <div className="pointer-events-auto flex w-full flex-col overflow-hidden rounded-[24px] border border-white/10 bg-black/70 shadow-2xl backdrop-blur-2xl sm:rounded-[28px] md:w-[22rem] xl:w-96">
+        <div className="pointer-events-auto flex w-full flex-col overflow-hidden rounded-[24px] border border-white/15 bg-black/70 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_0_28px_rgba(56,189,248,0.12)] backdrop-blur-2xl sm:rounded-[28px] md:w-[22rem] xl:w-96">
           <div className="flex overflow-x-auto border-b border-white/10 scrollbar-hide">
             {vehicle.categories.map((category) => (
               <button
@@ -130,7 +138,7 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
         </div>
       </div>
 
-      <div className="pointer-events-auto z-20 flex w-full flex-col items-stretch justify-between gap-3 border-t border-white/10 bg-black/80 p-3 backdrop-blur-xl sm:gap-4 sm:p-4 md:flex-row md:items-center md:px-8 md:py-5">
+      <div className="pointer-events-auto z-20 mx-3 mb-3 flex w-auto flex-col items-stretch justify-between gap-3 rounded-[24px] border border-white/15 bg-black/80 p-3 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_0_24px_rgba(56,189,248,0.12)] backdrop-blur-xl sm:mx-4 sm:gap-4 sm:p-4 md:mx-6 md:flex-row md:items-center md:px-8 md:py-5">
         <div className="flex w-full flex-col md:w-auto">
           <span className="mb-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-zinc-400">Total Build Price</span>
           <div className="text-2xl font-light tabular-nums sm:text-3xl"><FormattedPrice price={getTotalPrice()} /></div>
