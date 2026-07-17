@@ -26,9 +26,15 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
     setView,
   } = useAppStore();
   const [isExpanded, setIsExpanded] = useState(true);
+  const [isSummaryOpen, setIsSummaryOpen] = useState(false);
 
   const currentCategoryData = vehicle.categories.find((category) => category.id === activeCategory);
   const icons: Record<string, JSX.Element> = { Palette: <Palette size={20} />, CircleDot: <CircleDot size={20} />, Package: <Package size={20} /> };
+  const selectedOptions = vehicle.categories.map((category) => ({
+    category,
+    option: category.options.find((option) => option.id === selections[category.id]),
+  }));
+  const totalPrice = getTotalPrice();
 
   if (!isExpanded) {
     return (
@@ -144,7 +150,7 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
           <div className="text-2xl font-light tabular-nums sm:text-3xl"><FormattedPrice price={getTotalPrice()} /></div>
         </div>
         <div className="flex w-full flex-col gap-2 sm:flex-row md:w-auto">
-          <button className="flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm font-medium text-white transition-all hover:bg-white/20">
+          <button onClick={() => setIsSummaryOpen(true)} className="flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm font-medium text-white transition-all hover:bg-white/20">
             <Info size={16} /> Summary
           </button>
           <button className="flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition-all hover:bg-gray-200">
@@ -152,6 +158,61 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
           </button>
         </div>
       </div>
+
+      <AnimatePresence>
+        {isSummaryOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-30 flex items-center justify-center bg-black/70 p-4 pointer-events-auto"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-2xl overflow-hidden rounded-[28px] border border-white/10 bg-zinc-950 p-6 shadow-2xl"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-xs uppercase tracking-[0.3em] text-zinc-500">Vehicle Summary</div>
+                  <h2 className="mt-2 text-3xl font-semibold text-white">{vehicle.brand} {vehicle.model}</h2>
+                  <p className="mt-1 text-sm text-zinc-400">Data for the vehicle currently loaded in the scene.</p>
+                </div>
+                <button onClick={() => setIsSummaryOpen(false)} className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm text-white transition-colors hover:bg-white/10">
+                  Close
+                </button>
+              </div>
+
+              <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="text-xs uppercase tracking-[0.3em] text-zinc-500">Model</div>
+                  <div className="mt-2 text-lg font-medium text-white">{vehicle.brand} {vehicle.model}</div>
+                  <div className="mt-1 text-sm text-zinc-400">{vehicle.year} · {vehicle.type}</div>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="text-xs uppercase tracking-[0.3em] text-zinc-500">Total Price</div>
+                  <div className="mt-2 text-3xl font-semibold text-white"><FormattedPrice price={totalPrice} /></div>
+                </div>
+                <div className="sm:col-span-2 rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="text-xs uppercase tracking-[0.3em] text-zinc-500">Current Build</div>
+                  <div className="mt-4 space-y-3">
+                    {selectedOptions.map(({ category, option }) => (
+                      <div key={category.id} className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/20 p-3">
+                        <div>
+                          <div className="text-sm font-medium text-white">{category.name}</div>
+                          <div className="text-xs text-zinc-500">{option?.name ?? 'Not selected'}</div>
+                        </div>
+                        <div className="text-sm font-medium text-white">{option?.price ? `+${formatPrice(option.price)}` : 'Included'}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };
