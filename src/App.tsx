@@ -13,14 +13,14 @@ export default function App() {
   const activeVehicle = vehicles.find((vehicle) => vehicle.id === activeVehicleId) ?? null;
 
   return (
-    <div className="relative h-screen w-full overflow-hidden">
+    <div className="relative h-dvh min-h-dvh w-full overflow-hidden px-safe">
       <AnimatePresence mode="wait">
         {currentView === 'landing' && <LandingPage key="landing" />}
         {currentView === 'client_grid' && <ClientGridPage key="grid" />}
         {currentView === 'admin_dashboard' && <AdminDashboardPage key="admin" />}
 
         {currentView === 'configurator' && activeVehicle && (
-          <div key="config" className="relative h-full w-full">
+          <div key="config" className="configurator-shell relative h-full w-full">
             <ThreeViewer />
             <ConfigPanel vehicle={activeVehicle} activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
           </div>

@@ -43,6 +43,7 @@ export const ThreeViewer = () => {
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.2;
     containerRef.current.appendChild(renderer.domElement);
+    renderer.domElement.style.touchAction = 'none';
 
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
     scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
@@ -209,6 +210,10 @@ export const ThreeViewer = () => {
     };
     // Also disable pan to ensure right-click has no effect
     controls.enablePan = false;
+    controls.touches = {
+      ONE: THREE.TOUCH.ROTATE,
+      TWO: THREE.TOUCH.DOLLY_PAN,
+    };
 
     // If a pivot was already created during model load, point the controls at the pivot world position.
     // Note: pivotGroup may be set asynchronously by the loader callback — it's safe to check here.
@@ -238,13 +243,24 @@ export const ThreeViewer = () => {
     };
     animate();
 
+    let resizeTimer = 0;
     const handleResize = () => {
-      if (!containerRef.current) return;
-      camera.aspect = containerRef.current.clientWidth / containerRef.current.clientHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(() => {
+        if (!containerRef.current) return;
+        const { clientWidth, clientHeight } = containerRef.current;
+        if (clientWidth === 0 || clientHeight === 0) return;
+        camera.aspect = clientWidth / clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(clientWidth, clientHeight);
+      }, 100);
     };
+
+    handleResize();
     window.addEventListener('resize', handleResize);
+
+    const resizeObserver = new ResizeObserver(() => handleResize());
+    resizeObserver.observe(containerRef.current);
 
     threeRef.current = { mats, camera, controls, state, };
 
@@ -265,7 +281,9 @@ export const ThreeViewer = () => {
 
     return () => {
       isMounted = false;
+      window.clearTimeout(resizeTimer);
       window.removeEventListener('resize', handleResize);
+      resizeObserver.disconnect();
       window.cancelAnimationFrame(frameId);
       controls.dispose();
       renderer.dispose();
@@ -315,7 +333,7 @@ export const ThreeViewer = () => {
   return (
     <div className="absolute inset-0 z-0 h-full w-full bg-gradient-to-b from-zinc-900 to-black">
       {isModelLoading && (
-        <div className="absolute inset-x-0 top-0 z-10 flex flex-col gap-2 bg-black/40 px-4 py-3 backdrop-blur-sm sm:px-6">
+        <div className="absolute inset-x-0 top-0 z-10 flex flex-col gap-2 bg-black/40 px-4 pb-3 pt-safe backdrop-blur-sm sm:px-6">
           <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.3em] text-zinc-300">
             <span>Loading 3D model</span>
             <span>{Math.round(modelLoadProgress)}%</span>
