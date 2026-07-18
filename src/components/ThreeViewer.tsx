@@ -244,25 +244,41 @@ export const ThreeViewer = () => {
     animate();
 
     let resizeTimer = 0;
+    const updateRendererSize = () => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const clientWidth = rect.width;
+      const clientHeight = rect.height;
+      if (clientWidth === 0 || clientHeight === 0) return;
+      camera.aspect = clientWidth / clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(clientWidth, clientHeight);
+      renderer.domElement.style.width = `${clientWidth}px`;
+      renderer.domElement.style.height = `${clientHeight}px`;
+    };
+
     const handleResize = () => {
       window.clearTimeout(resizeTimer);
       resizeTimer = window.setTimeout(() => {
-        if (!containerRef.current) return;
-        const { clientWidth, clientHeight } = containerRef.current;
-        if (clientWidth === 0 || clientHeight === 0) return;
-        camera.aspect = clientWidth / clientHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(clientWidth, clientHeight);
+        updateRendererSize();
       }, 100);
     };
 
     handleResize();
     window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+
+    const visualViewport = window.visualViewport;
+    if (visualViewport) {
+      visualViewport.addEventListener('resize', handleResize);
+      visualViewport.addEventListener('scroll', handleResize);
+    }
 
     const resizeObserver = new ResizeObserver(() => handleResize());
     resizeObserver.observe(containerRef.current);
 
-    threeRef.current = { mats, camera, controls, state, };
+    threeRef.current = { mats, camera, controls, state };
 
     // If the model loads after controls are created, the loader callback sets pivotGroup and
     // we should update controls.target to match the pivot's world position so the camera
@@ -283,6 +299,11 @@ export const ThreeViewer = () => {
       isMounted = false;
       window.clearTimeout(resizeTimer);
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+      if (visualViewport) {
+        visualViewport.removeEventListener('resize', handleResize);
+        visualViewport.removeEventListener('scroll', handleResize);
+      }
       resizeObserver.disconnect();
       window.cancelAnimationFrame(frameId);
       controls.dispose();
@@ -331,7 +352,10 @@ export const ThreeViewer = () => {
   }, [activeCameraPreset, vehicle]);
 
   return (
-    <div className="absolute inset-0 z-0 h-full w-full bg-gradient-to-b from-zinc-900 to-black">
+    <div
+      className="absolute inset-x-0 z-0 w-full bg-gradient-to-b from-zinc-900 to-black"
+      style={{ top: 'var(--header-height, 0px)', bottom: 'var(--footer-height, 0px)' }}
+    >
       {isModelLoading && (
         <div className="absolute inset-x-0 top-0 z-10 flex flex-col gap-2 bg-black/40 px-4 pb-3 pt-[max(3.5rem,env(safe-area-inset-top))] backdrop-blur-sm sm:px-6">
           <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.3em] text-zinc-300">

@@ -1,5 +1,5 @@
 import { AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ConfigPanel } from './components/ConfigPanel';
 import { ThreeViewer } from './components/ThreeViewer';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
@@ -10,6 +10,32 @@ import { useAppStore } from './store';
 export default function App() {
   const { currentView, activeVehicleId, vehicles } = useAppStore();
   const [activeCategory, setActiveCategory] = useState('exterior_paint');
+
+  useEffect(() => {
+    const updateVh = () => {
+      const height = window.visualViewport?.height ?? window.innerHeight;
+      const vh = height * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+
+    updateVh();
+    window.addEventListener('resize', updateVh);
+    window.addEventListener('orientationchange', updateVh);
+    const visualViewport = window.visualViewport;
+    if (visualViewport) {
+      visualViewport.addEventListener('resize', updateVh);
+      visualViewport.addEventListener('scroll', updateVh);
+    }
+
+    return () => {
+      window.removeEventListener('resize', updateVh);
+      window.removeEventListener('orientationchange', updateVh);
+      if (visualViewport) {
+        visualViewport.removeEventListener('resize', updateVh);
+        visualViewport.removeEventListener('scroll', updateVh);
+      }
+    };
+  }, []);
   const activeVehicle = vehicles.find((vehicle) => vehicle.id === activeVehicleId) ?? null;
 
   return (

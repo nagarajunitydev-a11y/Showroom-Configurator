@@ -12,14 +12,31 @@
 html, body, #root {
   margin: 0;
   width: 100%;
-  height: 100%;
+  height: calc(var(--vh, 1vh) * 100);
   max-width: 100vw;
   overflow-x: hidden;
   background: #000;
 }
 
+:root {
+  --vh: 1vh;
+  --header-height: 0px;
+  --footer-height: 0px;
+}
+
+.h-dvh {
+  min-height: calc(var(--vh, 1vh) * 100);
+  height: calc(var(--vh, 1vh) * 100);
+}
+
 body {
   min-width: 320px;
+}
+
+@media (orientation: portrait) {
+  :root {
+    --vh: 1vh;
+  }
 }
 
 * {

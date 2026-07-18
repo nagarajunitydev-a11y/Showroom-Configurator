@@ -192,11 +192,13 @@ function CameraToolbar({
 function PricingFooter({
   totalPrice,
   onSummaryOpen,
+  onSave,
   compact,
   footerRef,
 }: {
   totalPrice: number;
   onSummaryOpen: () => void;
+  onSave: () => void;
   compact?: boolean;
   footerRef?: React.RefObject<HTMLDivElement>;
 }) {
@@ -224,7 +226,14 @@ function PricingFooter({
             </button>
             <button
               type="button"
-              className="inline-flex h-11 items-center justify-center gap-1 rounded-full bg-white px-3 text-xs font-semibold text-black transition-all hover:bg-gray-200 sm:px-4 sm:text-sm"
+              onClick={onSave}
+              className="inline-flex h-11 items-center justify-center gap-1 rounded-full bg-sky-500 px-3 text-xs font-semibold text-white transition-all hover:bg-sky-400 sm:px-4 sm:text-sm"
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              className="inline-flex h-11 items-center justify-center gap-1 rounded-full bg-white px-3 text-xs font-semibold text-black transition-all hover:bg-zinc-200 sm:px-4 sm:text-sm"
             >
               Order <ChevronRight size={16} />
             </button>
@@ -460,6 +469,7 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
     setCameraPreset,
     activeCameraPreset,
     setView,
+    saveConfiguration,
   } = useAppStore();
 
   const { isDesktop } = useBreakpoint();
@@ -471,6 +481,8 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
   const [sheetSnap, setSheetSnap] = useState<SheetSnap>('peek');
   const [isDesktopExpanded, setIsDesktopExpanded] = useState(true);
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const totalPrice = getTotalPrice();
   const selectedOptions = vehicle.categories.map((category) => ({
@@ -479,15 +491,15 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
   }));
 
   const sheetMaxHeight = typeof window !== 'undefined'
-    ? window.innerHeight - headerHeight - footerHeight - 16
+    ? (window.visualViewport?.height ?? window.innerHeight) - headerHeight - footerHeight - 16
     : undefined;
 
   useEffect(() => {
     document.documentElement.style.setProperty('--header-height', `${headerHeight}px`);
     document.documentElement.style.setProperty('--footer-height', `${footerHeight}px`);
     return () => {
-      document.documentElement.style.removeProperty('--header-height');
-      document.documentElement.style.removeProperty('--footer-height');
+      document.documentElement.style.setProperty('--header-height', '0px');
+      document.documentElement.style.setProperty('--footer-height', '0px');
     };
   }, [headerHeight, footerHeight]);
 
@@ -498,6 +510,23 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
       setSheetSnap('peek');
     }
   }, [isDesktop]);
+
+  const handleSave = () => {
+    setIsSaving(true);
+    const success = saveConfiguration();
+    setIsSaving(false);
+    if (success) {
+      setSaveMessage('Configuration saved successfully.');
+    } else {
+      setSaveMessage('Failed to save configuration. Please try again.');
+    }
+  };
+
+  useEffect(() => {
+    if (!saveMessage) return;
+    const timeout = window.setTimeout(() => setSaveMessage(null), 3000);
+    return () => window.clearTimeout(timeout);
+  }, [saveMessage]);
 
   if (!isDesktop) {
     return (
@@ -513,7 +542,7 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
           compact
         />
 
-        <PricingFooter footerRef={footerRef} totalPrice={totalPrice} onSummaryOpen={() => setIsSummaryOpen(true)} compact />
+        <PricingFooter footerRef={footerRef} totalPrice={totalPrice} onSummaryOpen={() => setIsSummaryOpen(true)} onSave={handleSave} compact />
 
         <BottomSheet
           snap={sheetSnap}
@@ -581,13 +610,51 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
         </DesktopLayout>
       </div>
 
-      <PricingFooter totalPrice={totalPrice} onSummaryOpen={() => setIsSummaryOpen(true)} />
+      <div className="pointer-events-auto z-20 mx-4 mb-4 flex w-auto max-w-full flex-col items-stretch justify-between gap-3 rounded-[24px] border border-white/15 bg-black/80 p-4 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_0_24px_rgba(56,189,248,0.12)] backdrop-blur-xl sm:mx-6 sm:gap-4 md:flex-row md:items-center md:px-8 md:py-5">
+        <div className="flex w-full flex-col md:w-auto">
+          <span className="mb-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-zinc-400">Total Build Price</span>
+          <div className="text-2xl font-light tabular-nums sm:text-3xl">
+            <FormattedPrice price={totalPrice} />
+          </div>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row md:w-auto">
+          <button
+            type="button"
+            onClick={() => setIsSummaryOpen(true)}
+            className="flex min-h-[44px] items-center justify-center gap-2 rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm font-medium text-white transition-all hover:bg-white/20"
+          >
+            <Info size={16} /> Summary
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={isSaving}
+            className="flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-sky-500 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-sky-400 disabled:opacity-40"
+          >
+            {isSaving ? 'Saving...' : 'Save'}
+          </button>
+          <button
+            type="button"
+            className="flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-black transition-all hover:bg-zinc-200"
+          >
+            Order Now <ChevronRight size={16} />
+          </button>
+        </div>
+      </div>
 
       <AnimatePresence>
         {isSummaryOpen && (
           <SummaryModal vehicle={vehicle} totalPrice={totalPrice} selectedOptions={selectedOptions} onClose={() => setIsSummaryOpen(false)} />
         )}
       </AnimatePresence>
+
+      {saveMessage && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-20 z-50 flex justify-center px-4">
+          <div className="pointer-events-auto rounded-2xl border border-white/10 bg-black/90 px-5 py-3 text-sm text-white shadow-xl backdrop-blur-xl">
+            {saveMessage}
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 };

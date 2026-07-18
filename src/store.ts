@@ -2,6 +2,37 @@ import { create } from 'zustand';
 import { createVehicleId } from './services/vehicleService';
 import { MATERIAL_TYPES, type AccessoryPlacement, type CameraSettings, type Vehicle, type VehicleCategory, type VehicleOption, type VehicleVariant, type View } from './types';
 
+interface SavedVehicleConfiguration {
+  vehicleId: string;
+  configuration: Record<string, unknown>;
+  timestamp: number;
+}
+
+const getSavedConfigurationKey = (vehicleId: string) => `vehicle-config:${vehicleId}`;
+
+const loadSavedVehicleConfiguration = (vehicleId: string): SavedVehicleConfiguration | null => {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return null;
+    const raw = window.localStorage.getItem(getSavedConfigurationKey(vehicleId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as SavedVehicleConfiguration;
+    if (!parsed || parsed.vehicleId !== vehicleId) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
+const persistVehicleConfiguration = (vehicleId: string, config: SavedVehicleConfiguration): boolean => {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return false;
+    window.localStorage.setItem(getSavedConfigurationKey(vehicleId), JSON.stringify(config));
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const DEFAULT_CATEGORIES: VehicleCategory[] = [
   {
     id: 'exterior_paint',
@@ -134,6 +165,8 @@ interface AppStoreActions {
   updatePlacement: (vehicleId: string, variantId: string, placementId: string, patch: Partial<AccessoryPlacement>) => void;
   setActiveVariant: (vehicleId: string, variantId: string) => void;
   updateVehicleCameraSettings: (vehicleId: string, settings: CameraSettings) => void;
+  saveConfiguration: () => boolean;
+  loadSavedConfiguration: (vehicleId: string) => void;
 }
 
 export type AppStore = AppStoreState & AppStoreActions;
@@ -179,23 +212,92 @@ export const useAppStore = create<AppStore>()((set, get) => ({
     const vehicle = get().vehicles.find((entry) => entry.id === vehicleId);
     if (!vehicle) return;
 
+    const savedConfig = loadSavedVehicleConfiguration(vehicleId);
     const initialSelections: Record<string, string> = {};
+
+    const config = savedConfig?.configuration ?? {};
+
     vehicle.categories.forEach((category) => {
-      initialSelections[category.id] = category.defaultOptionId;
+      const savedOptionId = typeof config.selections === 'object' && config.selections !== null
+        ? (config.selections as Record<string, unknown>)[category.id]
+        : undefined;
+
+      initialSelections[category.id] = category.options.some((option) => option.id === savedOptionId)
+        ? (savedOptionId as string)
+        : category.defaultOptionId;
     });
 
-    set({
+
+    const activeCameraPreset = typeof config.activeCameraPreset === 'string' && vehicle.cameras?.[config.activeCameraPreset as string]
+      ? (config.activeCameraPreset as string)
+      : 'default';
+
+    const activeVariantId = typeof config.activeVariantId === 'string' && vehicle.variants.some((variant) => variant.id === config.activeVariantId)
+      ? config.activeVariantId as string
+      : vehicle.activeVariantId;
+
+    const cameraSettings = typeof config.cameraSettings === 'object' && config.cameraSettings !== null
+      ? (config.cameraSettings as CameraSettings)
+      : vehicle.cameraSettings;
+
+    set((state) => ({
       activeVehicleId: vehicleId,
       selections: initialSelections,
       history: [initialSelections],
       historyIndex: 0,
-      activeCameraPreset: 'default',
+      activeCameraPreset,
       currentView: 'configurator',
       isLoading: true,
       loadingMessage: 'Loading vehicle assets…',
-    });
+      vehicles: state.vehicles.map((entry) =>
+        entry.id === vehicleId
+          ? { ...entry, activeVariantId, cameraSettings }
+          : entry
+      ),
+    }));
 
     window.setTimeout(() => get().setLoading(false), 500);
+  },
+
+  saveConfiguration: () => {
+    const state = get();
+    const vehicleId = state.activeVehicleId;
+    if (!vehicleId) return false;
+
+    const vehicle = state.vehicles.find((entry) => entry.id === vehicleId);
+    if (!vehicle) return false;
+
+    const config: SavedVehicleConfiguration = {
+      vehicleId,
+      configuration: {
+        selections: state.selections,
+        activeCameraPreset: state.activeCameraPreset,
+        activeVariantId: vehicle.activeVariantId,
+        cameraSettings: vehicle.cameraSettings,
+      },
+      timestamp: Date.now(),
+    };
+
+    return persistVehicleConfiguration(vehicleId, config);
+  },
+
+  loadSavedConfiguration: (vehicleId) => {
+    const savedConfig = loadSavedVehicleConfiguration(vehicleId);
+    if (!savedConfig) return;
+
+    const config = savedConfig.configuration;
+
+    set((state) => ({
+      vehicles: state.vehicles.map((entry) =>
+        entry.id === vehicleId
+          ? {
+              ...entry,
+              activeVariantId: typeof config.activeVariantId === 'string' ? config.activeVariantId : entry.activeVariantId,
+              cameraSettings: typeof config.cameraSettings === 'object' && config.cameraSettings !== null ? config.cameraSettings as CameraSettings : entry.cameraSettings,
+            }
+          : entry
+      ),
+    }));
   },
 
   selectOption: (categoryId, optionId) => {

@@ -66,13 +66,23 @@ export const BottomSheet = ({
   const sheetHeight = dragHeight ?? targetHeight;
 
   useEffect(() => {
-    const update = () => setViewportHeight(window.innerHeight);
+    const getViewportHeight = () => window.visualViewport?.height ?? window.innerHeight;
+    const update = () => setViewportHeight(getViewportHeight());
     update();
     window.addEventListener('resize', update);
     window.addEventListener('orientationchange', update);
+    const visualViewport = window.visualViewport;
+    if (visualViewport) {
+      visualViewport.addEventListener('resize', update);
+      visualViewport.addEventListener('scroll', update);
+    }
     return () => {
       window.removeEventListener('resize', update);
       window.removeEventListener('orientationchange', update);
+      if (visualViewport) {
+        visualViewport.removeEventListener('resize', update);
+        visualViewport.removeEventListener('scroll', update);
+      }
     };
   }, []);
 
@@ -121,7 +131,7 @@ export const BottomSheet = ({
       animate={{ height: sheetHeight }}
       initial={false}
       transition={{ type: 'spring', damping: 30, stiffness: 340 }}
-      style={{ bottom: bottomOffset, touchAction: 'pan-y' }}
+      style={{ bottom: bottomOffset, touchAction: 'pan-y', maxHeight: `calc(var(--vh, 1vh) * 100 - ${bottomOffset}px)` }}
       className={`pointer-events-auto fixed inset-x-0 z-20 mx-auto flex w-full max-w-[100vw] flex-col overflow-hidden rounded-t-[20px] border border-white/15 border-b-0 bg-black/85 shadow-[0_-8px_40px_rgba(0,0,0,0.45)] backdrop-blur-2xl ${className}`}
     >
       <button
