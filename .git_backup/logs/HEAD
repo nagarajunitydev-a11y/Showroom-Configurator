@@ -1,0 +1,13 @@
+0000000000000000000000000000000000000000 ca36b6e871abd302b17cf8868494bc23292d608a Nagaraj S <nagarajunitydev@gmail.com> 1783655012 +0530	commit (initial): Initial commit
+ca36b6e871abd302b17cf8868494bc23292d608a 0000000000000000000000000000000000000000 Nagaraj S <nagarajunitydev@gmail.com> 1783655057 +0530	Branch: renamed refs/heads/master to refs/heads/main
+0000000000000000000000000000000000000000 ca36b6e871abd302b17cf8868494bc23292d608a Nagaraj S <nagarajunitydev@gmail.com> 1783655057 +0530	Branch: renamed refs/heads/master to refs/heads/main
+ca36b6e871abd302b17cf8868494bc23292d608a 839bbedbba8a5fa94a8a7e6966b4b187b7bf9e27 Nagaraj S <nagarajunitydev@gmail.com> 1783655317 +0530	commit: Added ReadMe file
+839bbedbba8a5fa94a8a7e6966b4b187b7bf9e27 5c2afd9873a743d3135e01bc654a6203f58ea835 Nagaraj S <nagarajunitydev@gmail.com> 1783657916 +0530	commit: Mobile responsive added
+5c2afd9873a743d3135e01bc654a6203f58ea835 3006e8fa0b883a8f1631b42a2224d3b560cc7047 Nagaraj S <nagarajunitydev@gmail.com> 1783688317 +0530	commit: updated accessories menu
+3006e8fa0b883a8f1631b42a2224d3b560cc7047 a0907014d618c88897e0713428a4ac619c644c12 Nagaraj S <nagarajunitydev@gmail.com> 1784176962 +0530	commit: All changes pushed
+a0907014d618c88897e0713428a4ac619c644c12 7b8061ad74b8ba2e1c26b23e05375ba39dba15b0 Nagaraj S <nagarajunitydev@gmail.com> 1784182938 +0530	commit: added md files for references
+7b8061ad74b8ba2e1c26b23e05375ba39dba15b0 9d35a063c0a6f6bbe7dd9531333487563fb684d5 Nagaraj S <nagarajunitydev@gmail.com> 1784214428 +0530	commit: Disabled righ mouse click and drag
+9d35a063c0a6f6bbe7dd9531333487563fb684d5 8b131225e4955021a36db284f50f2bcdac774003 Nagaraj S <nagarajunitydev@gmail.com> 1784215795 +0530	commit: Disabled right click and drag, not fixed shadow issue
+8b131225e4955021a36db284f50f2bcdac774003 3595ece8cfcaeda286617d92248f8fc3589e3217 Nagaraj S <nagarajunitydev@gmail.com> 1784282488 +0530	commit: added summary updates
+3595ece8cfcaeda286617d92248f8fc3589e3217 64ab949944d39f3a32603594d12cbde612088001 Nagaraj S <nagarajunitydev@gmail.com> 1784343273 +0530	commit: Mobile responsive updated
+64ab949944d39f3a32603594d12cbde612088001 e85fa63ef0b7712732c7612075bdc352a5e1faa1 Nagaraj S <nagarajunitydev@gmail.com> 1784345761 +0530	commit: Errors fixed
