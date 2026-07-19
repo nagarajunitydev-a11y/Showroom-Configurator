@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 import { useAppStore } from '../store';
 import { recalculatePivotAfterScale, getOrbitControlsTarget, validateVehiclePivot, debugVehiclePivot } from '../utils/pivotUtils';
 
@@ -11,6 +12,7 @@ interface ThreeRefState {
   camera: THREE.PerspectiveCamera;
   controls: OrbitControls;
   state: { targetCameraPos: THREE.Vector3 | null };
+  modelGroup: THREE.Group | null;
 }
 
 export const ThreeViewer = () => {
@@ -35,7 +37,7 @@ export const ThreeViewer = () => {
     scene.background = new THREE.Color('#050505');
     scene.fog = new THREE.Fog('#050505', 10, 30);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
     renderer.shadowMap.enabled = true;
@@ -44,6 +46,44 @@ export const ThreeViewer = () => {
     renderer.toneMappingExposure = 1.2;
     containerRef.current.appendChild(renderer.domElement);
     renderer.domElement.style.touchAction = 'none';
+
+    const exporter = new GLTFExporter();
+
+    const captureScreenshot = async (): Promise<string | null> => {
+      await new Promise((resolve) => window.requestAnimationFrame(resolve));
+      controls.update();
+      renderer.render(scene, camera);
+      await new Promise((resolve) => window.requestAnimationFrame(resolve));
+
+      try {
+        return renderer.domElement.toDataURL('image/png');
+      } catch (error) {
+        console.error('Failed to generate screenshot data URL', error);
+        return null;
+      }
+    };
+
+    const captureARModel = async (): Promise<string | null> => {
+      if (!modelGroup) return null;
+
+      try {
+        const result = await exporter.parseAsync(modelGroup, { binary: true, embedImages: true });
+        if (result instanceof ArrayBuffer) {
+          const blob = new Blob([result], { type: 'model/gltf-binary' });
+          return URL.createObjectURL(blob);
+        }
+
+        const output = JSON.stringify(result);
+        const blob = new Blob([output], { type: 'application/json' });
+        return URL.createObjectURL(blob);
+      } catch (error) {
+        console.error('Failed to export AR model', error);
+        return null;
+      }
+    };
+
+    useAppStore.getState().setScreenshotCapturer(captureScreenshot);
+    useAppStore.getState().setARModelCapturer(captureARModel);
 
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
     scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
@@ -278,7 +318,7 @@ export const ThreeViewer = () => {
     const resizeObserver = new ResizeObserver(() => handleResize());
     resizeObserver.observe(containerRef.current);
 
-    threeRef.current = { mats, camera, controls, state };
+    threeRef.current = { mats, camera, controls, state, modelGroup };
 
     // If the model loads after controls are created, the loader callback sets pivotGroup and
     // we should update controls.target to match the pivot's world position so the camera
@@ -311,6 +351,8 @@ export const ThreeViewer = () => {
       if (containerRef.current && renderer.domElement) {
         containerRef.current.removeChild(renderer.domElement);
       }
+      useAppStore.getState().setScreenshotCapturer(null);
+      useAppStore.getState().setARModelCapturer(null);
     };
   }, [vehicle]);
 

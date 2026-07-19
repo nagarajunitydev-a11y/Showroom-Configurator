@@ -6,7 +6,8 @@ import {
   Package,
   Settings2,
   Check,
-  Camera as CameraIcon,
+  Smartphone,
+  Download,
   Undo2,
   Redo2,
   ArrowLeft,
@@ -15,6 +16,7 @@ import {
   Maximize2,
   Minimize2,
 } from 'lucide-react';
+import '@google/model-viewer';
 import { FormattedPrice } from './FormattedPrice';
 import { formatPrice } from '../utils/price';
 import { MATERIAL_TYPES, type Vehicle } from '../types';
@@ -124,68 +126,6 @@ function OptionsList({
         })}
       </motion.div>
     </AnimatePresence>
-  );
-}
-
-function CameraToolbar({
-  vehicle,
-  activeCameraPreset,
-  onPresetChange,
-  layout,
-}: {
-  vehicle: Vehicle;
-  activeCameraPreset: string;
-  onPresetChange: (preset: string) => void;
-  layout: 'horizontal' | 'vertical';
-}) {
-  const presets = Object.keys(vehicle.cameras);
-
-  if (layout === 'horizontal') {
-    return (
-      <div className="pointer-events-auto w-full max-w-[100vw] overflow-x-auto px-2 pb-1 scrollbar-hide">
-        <div className="inline-flex min-w-full justify-start gap-1.5 sm:gap-2">
-          {presets.map((preset) => (
-            <button
-              key={preset}
-              type="button"
-              onClick={() => onPresetChange(preset)}
-              className={`inline-flex h-10 min-w-[40px] shrink-0 items-center justify-center rounded-full border px-2.5 text-[10px] font-semibold uppercase tracking-wide transition-all sm:h-11 sm:min-w-[44px] sm:px-3 ${
-                activeCameraPreset === preset
-                  ? 'border-cyan-300/70 bg-white text-black'
-                  : 'border-white/15 bg-black/50 text-white hover:bg-black/70'
-              }`}
-              title={`View: ${preset}`}
-            >
-              {preset.toLowerCase() === 'perception' ? 'PER' : preset.slice(0, 4)}
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="pointer-events-auto absolute bottom-1/2 left-4 flex translate-y-1/2 flex-col gap-2 sm:left-6 sm:gap-3">
-      {presets.map((preset) => (
-        <button
-          key={preset}
-          type="button"
-          onClick={() => onPresetChange(preset)}
-          className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border p-2.5 backdrop-blur-md transition-all sm:p-3 ${
-            activeCameraPreset === preset
-              ? 'border-cyan-300/70 bg-white text-black shadow-[0_0_18px_rgba(255,255,255,0.16)]'
-              : 'border-white/15 bg-black/40 text-white hover:bg-black/60'
-          }`}
-          title={`View: ${preset}`}
-        >
-          {preset.toLowerCase() === 'perception' ? (
-            <span className="text-[10px] font-semibold uppercase tracking-[0.25em] sm:text-[11px]">PER</span>
-          ) : (
-            <CameraIcon size={16} className="sm:h-[18px] sm:w-[18px]" />
-          )}
-        </button>
-      ))}
-    </div>
   );
 }
 
@@ -350,6 +290,63 @@ function SummaryModal({
   );
 }
 
+function ScreenshotPreviewModal({
+  imageUrl,
+  onClose,
+  onDownload,
+}: {
+  imageUrl: string;
+  onClose: () => void;
+  onDownload: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="pointer-events-auto fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.96, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.96, opacity: 0 }}
+        transition={{ type: 'spring', damping: 24, stiffness: 300 }}
+        onClick={(event) => event.stopPropagation()}
+        className="max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-[28px] border border-white/10 bg-zinc-950 shadow-2xl"
+      >
+        <div className="flex items-center justify-between gap-4 border-b border-white/10 px-5 py-4">
+          <div>
+            <div className="text-xs uppercase tracking-[0.3em] text-zinc-500">Screenshot Preview</div>
+            <h2 className="mt-2 text-xl font-semibold text-white">Capture Ready</h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm text-white transition-colors hover:bg-white/10"
+          >
+            Close
+          </button>
+        </div>
+        <div className="bg-black p-4 sm:p-5">
+          <div className="overflow-hidden rounded-3xl border border-white/10 bg-zinc-900">
+            <img src={imageUrl} alt="Screenshot preview" className="block h-full w-full max-h-[60vh] object-contain" />
+          </div>
+        </div>
+        <div className="flex flex-col gap-3 border-t border-white/10 bg-zinc-950 px-5 py-4 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onDownload}
+            className="flex min-h-[44px] items-center justify-center rounded-full bg-sky-500 px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-sky-400"
+          >
+            Download
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 function ConfiguratorHeader({
   vehicle,
   onBack,
@@ -358,9 +355,12 @@ function ConfiguratorHeader({
   canUndo,
   canRedo,
   headerRef,
+  onAR,
+  onDownload,
   onToggleExpand,
   isExpanded,
   compact,
+  isARLaunching,
 }: {
   vehicle: Vehicle;
   onBack: () => void;
@@ -369,9 +369,12 @@ function ConfiguratorHeader({
   canUndo: boolean;
   canRedo: boolean;
   headerRef?: React.RefObject<HTMLElement>;
+  onAR?: () => void;
+  onDownload?: () => void;
   onToggleExpand?: () => void;
   isExpanded?: boolean;
   compact?: boolean;
+  isARLaunching?: boolean;
 }) {
   if (compact) {
     return (
@@ -393,6 +396,27 @@ function ConfiguratorHeader({
             <div className="truncate text-sm font-medium">{vehicle.model}</div>
           </div>
           <div className="flex shrink-0 items-center gap-1">
+            {onAR && (
+              <button
+                type="button"
+                onClick={onAR}
+                disabled={isARLaunching}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/5 transition-all hover:bg-white/10 disabled:opacity-50"
+                aria-label="Launch AR"
+              >
+                <Smartphone size={18} />
+              </button>
+            )}
+            {onDownload && (
+              <button
+                type="button"
+                onClick={onDownload}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/5 transition-all hover:bg-white/10"
+                aria-label="Download screenshot"
+              >
+                <Download size={18} />
+              </button>
+            )}
             <button type="button" onClick={onUndo} disabled={!canUndo} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/5 disabled:opacity-30" aria-label="Undo">
               <Undo2 size={18} />
             </button>
@@ -415,6 +439,29 @@ function ConfiguratorHeader({
         <h1 className="mt-1 truncate text-2xl font-light tracking-tight sm:text-3xl md:text-4xl">{vehicle.model}</h1>
       </div>
       <div className="flex items-center gap-2">
+        {onAR && (
+          <button
+            type="button"
+            onClick={onAR}
+            disabled={isARLaunching}
+            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-white/15 bg-white/5 backdrop-blur-xl transition-all hover:bg-white/10 disabled:opacity-50"
+            title="Launch AR"
+            aria-label="Launch AR"
+          >
+            <Smartphone size={18} />
+          </button>
+        )}
+        {onDownload && (
+          <button
+            type="button"
+            onClick={onDownload}
+            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-white/15 bg-white/5 backdrop-blur-xl transition-all hover:bg-white/10"
+            title="Download screenshot"
+            aria-label="Download screenshot"
+          >
+            <Download size={18} />
+          </button>
+        )}
         {onToggleExpand && (
           <button
             type="button"
@@ -466,21 +513,26 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
     historyIndex,
     undo,
     redo,
-    setCameraPreset,
-    activeCameraPreset,
     setView,
     saveConfiguration,
+    captureScreenshot,
+    captureARModel,
   } = useAppStore();
 
   const { isDesktop } = useBreakpoint();
   const headerRef = useRef<HTMLElement>(null);
   const footerRef = useRef<HTMLDivElement>(null);
+  const modelViewerRef = useRef<any>(null);
   const headerHeight = useElementHeight(headerRef, HEADER_HEIGHT_FALLBACK);
   const footerHeight = useElementHeight(footerRef, FOOTER_HEIGHT_FALLBACK);
 
   const [sheetSnap, setSheetSnap] = useState<SheetSnap>('peek');
   const [isDesktopExpanded, setIsDesktopExpanded] = useState(true);
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+  const [screenshotPreviewUrl, setScreenshotPreviewUrl] = useState<string | null>(null);
+  const [isScreenshotPreviewOpen, setIsScreenshotPreviewOpen] = useState(false);
+  const [arMessage, setArMessage] = useState<string | null>(null);
+  const [isARLaunching, setIsARLaunching] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -522,23 +574,99 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
     }
   };
 
+  const handleScreenshotCapture = async () => {
+    if (!captureScreenshot) return;
+
+    try {
+      const previewUrl = await captureScreenshot();
+      if (!previewUrl) return;
+      setScreenshotPreviewUrl(previewUrl);
+      setIsScreenshotPreviewOpen(true);
+    } catch (error) {
+      console.error('Failed to capture screenshot', error);
+    }
+  };
+
+  const handleARLaunch = async () => {
+    if (!captureARModel || !modelViewerRef.current) {
+      setArMessage('AR is not supported on this device or browser.');
+      return;
+    }
+
+    setIsARLaunching(true);
+    setArMessage(null);
+
+    try {
+      const arModelUrl = await captureARModel();
+      if (!arModelUrl) {
+        setArMessage('Failed to prepare the AR model. Please try again.');
+        return;
+      }
+
+      modelViewerRef.current.src = arModelUrl;
+      await modelViewerRef.current.updateComplete;
+      await modelViewerRef.current.activateAR();
+    } catch (error) {
+      console.error('AR launch failed', error);
+      setArMessage('AR is unavailable on this device or the browser blocked the AR session.');
+    } finally {
+      setIsARLaunching(false);
+    }
+  };
+
+  const handleCloseScreenshotPreview = () => {
+    setScreenshotPreviewUrl(null);
+    setIsScreenshotPreviewOpen(false);
+  };
+
+  const handleScreenshotDownload = () => {
+    if (!screenshotPreviewUrl) return;
+
+    const now = new Date();
+    const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+    const filename = `vehicle-configurator-${timestamp}.png`;
+
+    const link = document.createElement('a');
+    link.href = screenshotPreviewUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    handleCloseScreenshotPreview();
+  };
+
   useEffect(() => {
     if (!saveMessage) return;
     const timeout = window.setTimeout(() => setSaveMessage(null), 3000);
     return () => window.clearTimeout(timeout);
   }, [saveMessage]);
 
+  const modelViewer = (
+    <model-viewer
+      ref={modelViewerRef}
+      style={{ display: 'none' }}
+      ar
+      ar-modes="webxr scene-viewer quick-look"
+      environment-image="neutral"
+      exposure="1"
+    />
+  );
+
   if (!isDesktop) {
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pointer-events-none absolute inset-0 z-10 max-w-[100vw] overflow-hidden font-sans text-white">
+        {modelViewer}
         <ConfiguratorHeader
           vehicle={vehicle}
           headerRef={headerRef}
           onBack={() => setView('client_grid')}
+          onAR={handleARLaunch}
+          onDownload={handleScreenshotCapture}
           onUndo={undo}
           onRedo={redo}
           canUndo={historyIndex > 0}
           canRedo={historyIndex < history.length - 1}
+          isARLaunching={isARLaunching}
           compact
         />
 
@@ -552,7 +680,6 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
           peekContent={
             <div className="w-full max-w-[100vw]">
               <CategoryTabs vehicle={vehicle} activeCategory={activeCategory} onCategoryChange={onCategoryChange} compact />
-              <CameraToolbar vehicle={vehicle} activeCameraPreset={activeCameraPreset} onPresetChange={setCameraPreset} layout="horizontal" />
             </div>
           }
         >
@@ -562,6 +689,13 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
         <AnimatePresence>
           {isSummaryOpen && (
             <SummaryModal vehicle={vehicle} totalPrice={totalPrice} selectedOptions={selectedOptions} onClose={() => setIsSummaryOpen(false)} />
+          )}
+          {isScreenshotPreviewOpen && screenshotPreviewUrl && (
+            <ScreenshotPreviewModal
+              imageUrl={screenshotPreviewUrl}
+              onClose={() => setIsScreenshotPreviewOpen(false)}
+              onDownload={handleScreenshotDownload}
+            />
           )}
         </AnimatePresence>
       </motion.div>
@@ -594,17 +728,27 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
       <ConfiguratorHeader
         vehicle={vehicle}
         onBack={() => setView('client_grid')}
+        onAR={handleARLaunch}
+        onDownload={handleScreenshotCapture}
         onUndo={undo}
         onRedo={redo}
         canUndo={historyIndex > 0}
         canRedo={historyIndex < history.length - 1}
         onToggleExpand={() => setIsDesktopExpanded(false)}
         isExpanded={isDesktopExpanded}
+        isARLaunching={isARLaunching}
+      />
+
+      <model-viewer
+        ref={modelViewerRef}
+        style={{ display: 'none' }}
+        ar
+        ar-modes="webxr scene-viewer quick-look"
+        environment-image="neutral"
+        exposure="1"
       />
 
       <div className="pointer-events-none flex flex-1 flex-col items-end justify-end p-4 md:flex-row md:items-stretch md:pb-6">
-        <CameraToolbar vehicle={vehicle} activeCameraPreset={activeCameraPreset} onPresetChange={setCameraPreset} layout="vertical" />
-
         <DesktopLayout vehicle={vehicle} activeCategory={activeCategory} onCategoryChange={onCategoryChange}>
           <OptionsList vehicle={vehicle} activeCategory={activeCategory} selections={selections} onSelect={selectOption} />
         </DesktopLayout>
@@ -646,8 +790,22 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
         {isSummaryOpen && (
           <SummaryModal vehicle={vehicle} totalPrice={totalPrice} selectedOptions={selectedOptions} onClose={() => setIsSummaryOpen(false)} />
         )}
+        {isScreenshotPreviewOpen && screenshotPreviewUrl && (
+          <ScreenshotPreviewModal
+            imageUrl={screenshotPreviewUrl}
+            onClose={() => setIsScreenshotPreviewOpen(false)}
+            onDownload={handleScreenshotDownload}
+          />
+        )}
       </AnimatePresence>
 
+      {arMessage && (
+        <div className="pointer-events-none fixed inset-x-0 top-20 z-50 flex justify-center px-4">
+          <div className="pointer-events-auto rounded-2xl border border-white/10 bg-black/90 px-5 py-3 text-sm text-white shadow-xl backdrop-blur-xl">
+            {arMessage}
+          </div>
+        </div>
+      )}
       {saveMessage && (
         <div className="pointer-events-none fixed inset-x-0 bottom-20 z-50 flex justify-center px-4">
           <div className="pointer-events-auto rounded-2xl border border-white/10 bg-black/90 px-5 py-3 text-sm text-white shadow-xl backdrop-blur-xl">

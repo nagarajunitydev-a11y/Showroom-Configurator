@@ -1,11 +1,12 @@
 import { AnimatePresence } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { ConfigPanel } from './components/ConfigPanel';
-import { ThreeViewer } from './components/ThreeViewer';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { ClientGridPage } from './pages/ClientGridPage';
 import { LandingPage } from './pages/LandingPage';
 import { useAppStore } from './store';
+
+const ThreeViewer = lazy(() => import('./components/ThreeViewer').then((module) => ({ default: module.ThreeViewer })));
 
 export default function App() {
   const { currentView, activeVehicleId, vehicles } = useAppStore();
@@ -47,7 +48,9 @@ export default function App() {
 
         {currentView === 'configurator' && activeVehicle && (
           <div key="config" className="configurator-shell relative h-full w-full">
-            <ThreeViewer />
+            <Suspense fallback={null}>
+              <ThreeViewer />
+            </Suspense>
             <ConfigPanel vehicle={activeVehicle} activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
           </div>
         )}

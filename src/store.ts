@@ -142,10 +142,14 @@ export interface AppStoreState {
   activeCameraPreset: string;
   isLoading: boolean;
   loadingMessage: string;
+  captureScreenshot: (() => Promise<string | null>) | null;
+  captureARModel: (() => Promise<string | null>) | null;
 }
 
 interface AppStoreActions {
   setView: (view: View) => void;
+  setScreenshotCapturer: (capture: (() => Promise<string | null>) | null) => void;
+  setARModelCapturer: (capture: (() => Promise<string | null>) | null) => void;
   adminLogin: (password: string) => boolean;
   adminLogout: () => void;
   addVehicle: (vehicleData: Omit<Vehicle, 'id' | 'url' | 'cameras' | 'categories' | 'variants' | 'activeVariantId' | 'cameraSettings'>, file: File) => void;
@@ -182,6 +186,8 @@ export const useAppStore = create<AppStore>()((set, get) => ({
   activeCameraPreset: 'default',
   isLoading: false,
   loadingMessage: 'Preparing your experience…',
+  captureScreenshot: null,
+  captureARModel: null,
 
   setView: (view) => set({ currentView: view }),
 
@@ -334,6 +340,8 @@ export const useAppStore = create<AppStore>()((set, get) => ({
   })),
 
   setCameraPreset: (preset) => set({ activeCameraPreset: preset }),
+  setScreenshotCapturer: (capture) => set({ captureScreenshot: capture }),
+  setARModelCapturer: (capture) => set({ captureARModel: capture }),
 
   getTotalPrice: () => {
     const state = get();
