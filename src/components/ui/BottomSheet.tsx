@@ -10,6 +10,7 @@ interface BottomSheetProps {
   children: ReactNode;
   bottomOffset?: number;
   maxHeight?: number;
+  peekHeight?: number;
   className?: string;
 }
 
@@ -18,13 +19,13 @@ const SNAP_ORDER: SheetSnap[] = ['peek', 'half', 'full'];
 const PEEK_HEIGHT = 168;
 const HANDLE_HEIGHT = 28;
 
-function getSnapHeights(viewportHeight: number, bottomOffset: number, maxHeight?: number) {
+function getSnapHeights(viewportHeight: number, bottomOffset: number, maxHeight?: number, peekHeight?: number) {
   const available = maxHeight ?? viewportHeight - bottomOffset;
   const capped = (value: number) => Math.min(value, available);
 
   return {
     hidden: 0,
-    peek: PEEK_HEIGHT,
+    peek: peekHeight ?? PEEK_HEIGHT,
     half: capped(Math.round(viewportHeight * 0.42)),
     full: capped(Math.round(viewportHeight * 0.72)),
   };
@@ -52,14 +53,15 @@ export const BottomSheet = ({
   children,
   bottomOffset = 0,
   maxHeight,
+  peekHeight,
   className = '',
 }: BottomSheetProps) => {
   const [viewportHeight, setViewportHeight] = useState(() => (typeof window !== 'undefined' ? window.innerHeight : 800));
   const [dragHeight, setDragHeight] = useState<number | null>(null);
 
   const heights = useMemo(
-    () => getSnapHeights(viewportHeight, bottomOffset, maxHeight),
-    [viewportHeight, bottomOffset, maxHeight],
+    () => getSnapHeights(viewportHeight, bottomOffset, maxHeight, peekHeight),
+    [viewportHeight, bottomOffset, maxHeight, peekHeight],
   );
 
   const targetHeight = snap === 'hidden' ? heights.hidden : heights[snap];

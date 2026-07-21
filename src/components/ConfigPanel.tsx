@@ -677,6 +677,7 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
           onSnapChange={setSheetSnap}
           bottomOffset={footerHeight}
           maxHeight={sheetMaxHeight}
+          peekHeight={108}
           peekContent={
             <div className="w-full max-w-[100vw]">
               <CategoryTabs vehicle={vehicle} activeCategory={activeCategory} onCategoryChange={onCategoryChange} compact />

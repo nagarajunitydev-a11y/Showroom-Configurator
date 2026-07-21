@@ -5,11 +5,25 @@ import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { ClientGridPage } from './pages/ClientGridPage';
 import { LandingPage } from './pages/LandingPage';
 import { useAppStore } from './store';
+import type { View } from './types';
 
 const ThreeViewer = lazy(() => import('./components/ThreeViewer').then((module) => ({ default: module.ThreeViewer })));
 
+const getViewFromPath = (path: string): View => {
+  switch (path) {
+    case '/showroom':
+      return 'client_grid';
+    case '/admin':
+      return 'admin_dashboard';
+    case '/configurator':
+      return 'configurator';
+    default:
+      return 'landing';
+  }
+};
+
 export default function App() {
-  const { currentView, activeVehicleId, vehicles } = useAppStore();
+  const { currentView, activeVehicleId, vehicles, setView } = useAppStore();
   const [activeCategory, setActiveCategory] = useState('exterior_paint');
 
   useEffect(() => {
@@ -37,6 +51,26 @@ export default function App() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    const syncViewFromLocation = () => {
+      const nextView = getViewFromPath(window.location.pathname);
+      if (nextView !== currentView) {
+        setView(nextView, { replace: true });
+      }
+    };
+
+    syncViewFromLocation();
+    window.addEventListener('popstate', syncViewFromLocation);
+    return () => window.removeEventListener('popstate', syncViewFromLocation);
+  }, [currentView, setView]);
+
+  useEffect(() => {
+    if (currentView === 'configurator' && !activeVehicleId) {
+      setView('client_grid', { replace: true });
+    }
+  }, [activeVehicleId, currentView, setView]);
+
   const activeVehicle = vehicles.find((vehicle) => vehicle.id === activeVehicleId) ?? null;
 
   return (

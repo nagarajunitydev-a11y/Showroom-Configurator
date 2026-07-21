@@ -117,6 +117,19 @@ const createDefaultVehicle = (vehicleData: Partial<Vehicle> = {}): Vehicle => ({
   cameraSettings: vehicleData.cameraSettings ?? DEFAULT_CAMERA_SETTINGS,
 });
 
+const getViewPath = (view: View): string => {
+  switch (view) {
+    case 'client_grid':
+      return '/showroom';
+    case 'admin_dashboard':
+      return '/admin';
+    case 'configurator':
+      return '/configurator';
+    default:
+      return '/';
+  }
+};
+
 const bikeModelUrl = new URL('./assets/BikeModel.glb', import.meta.url).href;
 
 const INITIAL_VEHICLES: Vehicle[] = [
@@ -147,7 +160,7 @@ export interface AppStoreState {
 }
 
 interface AppStoreActions {
-  setView: (view: View) => void;
+  setView: (view: View, options?: { replace?: boolean }) => void;
   setScreenshotCapturer: (capture: (() => Promise<string | null>) | null) => void;
   setARModelCapturer: (capture: (() => Promise<string | null>) | null) => void;
   adminLogin: (password: string) => boolean;
@@ -189,17 +202,42 @@ export const useAppStore = create<AppStore>()((set, get) => ({
   captureScreenshot: null,
   captureARModel: null,
 
-  setView: (view) => set({ currentView: view }),
+  setView: (view, options = {}) => {
+    if (get().currentView === view) {
+      if (typeof window !== 'undefined') {
+        const nextPath = getViewPath(view);
+        if (window.location.pathname !== nextPath) {
+          window.history.replaceState({ view }, '', nextPath);
+        }
+      }
+      return;
+    }
+
+    set({ currentView: view });
+
+    if (typeof window === 'undefined') return;
+
+    const nextPath = getViewPath(view);
+    if (options.replace) {
+      window.history.replaceState({ view }, '', nextPath);
+    } else {
+      window.history.pushState({ view }, '', nextPath);
+    }
+  },
 
   adminLogin: (password) => {
     if (password === 'admin') {
-      set({ isAdminAuthed: true, currentView: 'admin_dashboard' });
+      set({ isAdminAuthed: true });
+      get().setView('admin_dashboard');
       return true;
     }
     return false;
   },
 
-  adminLogout: () => set({ isAdminAuthed: false, currentView: 'landing' }),
+  adminLogout: () => {
+    set({ isAdminAuthed: false });
+    get().setView('landing');
+  },
 
   addVehicle: (vehicleData, file) => {
     const newVehicle: Vehicle = createDefaultVehicle({
@@ -252,7 +290,6 @@ export const useAppStore = create<AppStore>()((set, get) => ({
       history: [initialSelections],
       historyIndex: 0,
       activeCameraPreset,
-      currentView: 'configurator',
       isLoading: true,
       loadingMessage: 'Loading vehicle assets…',
       vehicles: state.vehicles.map((entry) =>
@@ -262,6 +299,7 @@ export const useAppStore = create<AppStore>()((set, get) => ({
       ),
     }));
 
+    get().setView('configurator');
     window.setTimeout(() => get().setLoading(false), 500);
   },
 
