@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -18,11 +19,13 @@ interface ThreeRefState {
 export const ThreeViewer = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const threeRef = useRef<ThreeRefState | null>(null);
-  const [isModelLoading, setIsModelLoading] = useState(false);
-  const [modelLoadProgress, setModelLoadProgress] = useState(0);
 
   const { selections, activeVehicleId, vehicles, activeCameraPreset } = useAppStore();
   const vehicle = vehicles.find((entry) => entry.id === activeVehicleId);
+  const [isModelLoading, setIsModelLoading] = useState(Boolean(vehicle?.url));
+  const [modelLoadProgress, setModelLoadProgress] = useState(0);
+  const showLoadingScreen = Boolean(vehicle?.url) && isModelLoading;
+  const displayProgress = modelLoadProgress > 0 ? Math.min(100, Math.max(8, modelLoadProgress)) : 12;
 
   useEffect(() => {
     if (!containerRef.current || !vehicle) return;
@@ -398,14 +401,33 @@ export const ThreeViewer = () => {
       className="absolute inset-x-0 z-0 w-full bg-gradient-to-b from-zinc-900 to-black"
       style={{ top: 'var(--header-height, 0px)', bottom: 'var(--footer-height, 0px)' }}
     >
-      {isModelLoading && (
-        <div className="absolute inset-x-0 top-0 z-10 flex flex-col gap-2 bg-black/40 px-4 pb-3 pt-[max(3.5rem,env(safe-area-inset-top))] backdrop-blur-sm sm:px-6">
-          <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.3em] text-zinc-300">
-            <span>Loading 3D model</span>
-            <span>{Math.round(modelLoadProgress)}%</span>
-          </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-            <div className="h-full rounded-full bg-white transition-all duration-300" style={{ width: `${Math.max(6, modelLoadProgress)}%` }} />
+      {showLoadingScreen && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/80 px-4 pb-8 pt-[max(4rem,env(safe-area-inset-top))] backdrop-blur-md sm:px-6 sm:pb-10">
+          <div className="flex w-full max-w-sm flex-col items-center justify-center rounded-3xl border border-white/10 bg-white/5 p-6 text-center shadow-2xl shadow-black/40 sm:p-8">
+            <motion.div
+              className="mb-5 h-14 w-14 rounded-full border-4 border-white/15 border-t-white"
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+            />
+            <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-zinc-400">Preparing 3D view</p>
+            <h3 className="mt-2 text-lg font-semibold text-white">Loading vehicle model</h3>
+            <p className="mt-2 text-sm leading-6 text-zinc-300">
+              This can take a moment on slower mobile connections, especially on first load.
+            </p>
+
+            <div className="mt-6 flex w-full flex-col gap-2">
+              <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.3em] text-zinc-400">
+                <span>Download progress</span>
+                <span>{Math.round(modelLoadProgress)}%</span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+                <motion.div
+                  className="h-full rounded-full bg-gradient-to-r from-white via-zinc-100 to-white"
+                  animate={modelLoadProgress > 0 ? { width: `${displayProgress}%` } : { width: ['8%', '72%', '8%'] }}
+                  transition={modelLoadProgress > 0 ? { duration: 0.3, ease: 'easeOut' } : { repeat: Infinity, duration: 1.4, ease: 'easeInOut' }}
+                />
+              </div>
+            </div>
           </div>
         </div>
       )}
