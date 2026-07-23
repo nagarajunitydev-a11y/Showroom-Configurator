@@ -3,7 +3,6 @@ import { Suspense, lazy, useEffect, useState } from 'react';
 import { ConfigPanel } from './components/ConfigPanel';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { ClientGridPage } from './pages/ClientGridPage';
-import { LandingPage } from './pages/LandingPage';
 import { useAppStore } from './store';
 import type { View } from './types';
 
@@ -11,14 +10,15 @@ const ThreeViewer = lazy(() => import('./components/ThreeViewer').then((module) 
 
 const getViewFromPath = (path: string): View => {
   switch (path) {
+    case '/':
     case '/showroom':
       return 'client_grid';
     case '/admin':
-      return 'admin_dashboard';
+      return 'client_grid';
     case '/configurator':
       return 'configurator';
     default:
-      return 'landing';
+      return 'client_grid';
   }
 };
 
@@ -76,7 +76,6 @@ export default function App() {
   return (
     <div className="relative h-dvh min-h-dvh w-full max-w-[100vw] overflow-hidden">
       <AnimatePresence mode="wait">
-        {currentView === 'landing' && <LandingPage key="landing" />}
         {currentView === 'client_grid' && <ClientGridPage key="grid" />}
         {currentView === 'admin_dashboard' && <AdminDashboardPage key="admin" />}
 

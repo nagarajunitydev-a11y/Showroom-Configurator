@@ -122,11 +122,13 @@ const getViewPath = (view: View): string => {
     case 'client_grid':
       return '/showroom';
     case 'admin_dashboard':
-      return '/admin';
+      return '/showroom';
     case 'configurator':
       return '/configurator';
+    case 'landing':
+      return '/showroom';
     default:
-      return '/';
+      return '/showroom';
   }
 };
 
@@ -189,7 +191,7 @@ interface AppStoreActions {
 export type AppStore = AppStoreState & AppStoreActions;
 
 export const useAppStore = create<AppStore>()((set, get) => ({
-  currentView: 'landing',
+  currentView: 'client_grid',
   vehicles: INITIAL_VEHICLES,
   activeVehicleId: null,
   isAdminAuthed: false,
@@ -228,7 +230,7 @@ export const useAppStore = create<AppStore>()((set, get) => ({
   adminLogin: (password) => {
     if (password === 'admin') {
       set({ isAdminAuthed: true });
-      get().setView('admin_dashboard');
+      get().setView('client_grid');
       return true;
     }
     return false;
@@ -236,7 +238,7 @@ export const useAppStore = create<AppStore>()((set, get) => ({
 
   adminLogout: () => {
     set({ isAdminAuthed: false });
-    get().setView('landing');
+    get().setView('client_grid');
   },
 
   addVehicle: (vehicleData, file) => {
