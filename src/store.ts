@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { fetchModelCatalog, resolveModelThumbnailUrl } from './services/modelCatalog';
 import { createVehicleId } from './services/vehicleService';
 import { MATERIAL_TYPES, type AccessoryPlacement, type CameraSettings, type Vehicle, type VehicleCategory, type VehicleOption, type VehicleVariant, type View } from './types';
 
@@ -104,6 +105,8 @@ const createDefaultVehicle = (vehicleData: Partial<Vehicle> = {}): Vehicle => ({
   year: vehicleData.year ?? 2026,
   basePrice: vehicleData.basePrice ?? 85000,
   url: vehicleData.url ?? null,
+  modelId: vehicleData.modelId ?? null,
+  thumbnailUrl: vehicleData.thumbnailUrl ?? null,
   cameras: vehicleData.cameras ?? {
     default: [5, 2, 5],
     front: [0, 1, 6],
@@ -132,19 +135,22 @@ const getViewPath = (view: View): string => {
   }
 };
 
-const bikeModelUrl = new URL('./assets/BikeModel.glb', import.meta.url).href;
+const modelCatalog = fetchModelCatalog();
 
-const INITIAL_VEHICLES: Vehicle[] = [
-  createDefaultVehicle({
-    id: 'v-001',
-    type: 'Bike',
+const INITIAL_VEHICLES: Vehicle[] = modelCatalog.map((model, index) => {
+  const basePrice = [85000, 98000, 112000][index] ?? 90000;
+
+  return createDefaultVehicle({
+    id: `v-${String(index + 1).padStart(3, '0')}`,
+    type: model.category,
     brand: 'Sample',
-    model: 'Bike Model',
+    model: model.name,
     year: 2026,
-    basePrice: 85000,
-    url: bikeModelUrl,
-  }),
-];
+    basePrice,
+    modelId: model.id,
+    thumbnailUrl: resolveModelThumbnailUrl(model.id),
+  });
+});
 
 export interface AppStoreState {
   currentView: View;

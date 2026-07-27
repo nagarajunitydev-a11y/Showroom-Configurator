@@ -1,0 +1,50 @@
+- generic [ref=f3e186]:
+  - generic [ref=f3e189]:
+    - paragraph [ref=f3e191]: Preparing 3D view
+    - heading "Loading vehicle model" [level=3] [ref=f3e192]
+    - paragraph [ref=f3e193]: This can take a moment on slower mobile connections, especially on first load.
+    - generic [ref=f3e195]:
+      - generic [ref=f3e196]: Download progress
+      - generic [ref=f3e197]: 100%
+  - generic:
+    - banner [ref=f3e202]:
+      - generic [ref=f3e203]:
+        - button "Back to Showroom" [ref=f3e204] [cursor=pointer]
+        - heading "Sample" [level=2] [ref=f3e207]
+        - heading "Executive Car" [level=1] [ref=f3e208]
+      - generic [ref=f3e209]:
+        - button "Launch AR" [ref=f3e210] [cursor=pointer]
+        - button "Download screenshot" [ref=f3e213] [cursor=pointer]
+        - button "Collapse side panels" [ref=f3e217] [cursor=pointer]
+        - button [disabled] [ref=f3e223]
+        - button [disabled] [ref=f3e227]
+    - generic [ref=f3e231]:
+      - generic [ref=f3e233]:
+        - button "Exterior Paint" [ref=f3e234] [cursor=pointer]
+        - button "Wheels & Alloys" [ref=f3e243] [cursor=pointer]
+        - button "Accessories" [ref=f3e248] [cursor=pointer]
+      - generic [ref=f3e255]:
+        - button "Glacier White Included" [ref=f3e256] [cursor=pointer]:
+          - generic [ref=f3e261]:
+            - generic [ref=f3e262]: Glacier White
+            - generic [ref=f3e263]: Included
+        - button "Obsidian Black +$1,200" [ref=f3e264] [cursor=pointer]:
+          - generic [ref=f3e267]:
+            - generic [ref=f3e268]: Obsidian Black
+            - generic [ref=f3e269]: +$1,200
+        - button "Rosso Corsa +$2,500" [ref=f3e270] [cursor=pointer]:
+          - generic [ref=f3e273]:
+            - generic [ref=f3e274]: Rosso Corsa
+            - generic [ref=f3e275]: +$2,500
+        - button "Stealth Grey (Matte) +$3,500" [ref=f3e276] [cursor=pointer]:
+          - generic [ref=f3e279]:
+            - generic [ref=f3e280]: Stealth Grey (Matte)
+            - generic [ref=f3e281]: +$3,500
+    - generic [ref=f3e282]:
+      - generic [ref=f3e283]:
+        - generic [ref=f3e284]: Total Build Price
+        - generic [ref=f3e285]: $98,000
+      - generic [ref=f3e286]:
+        - button "Summary" [ref=f3e287] [cursor=pointer]
+        - button "Save" [ref=f3e290] [cursor=pointer]
+        - button "Order Now" [ref=f3e291] [cursor=pointer]

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { AlertCircle, ArrowRight, Filter, Search, SlidersHorizontal, Sparkles, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { VehicleCard } from '../components/VehicleCard';
 import { useAppStore } from '../store';
 
@@ -86,8 +86,18 @@ export const ClientGridPage = () => {
     initializeConfigurator(vehicleId);
   };
 
+  const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  useEffect(() => {
+    if (!selectedVehicleId) return;
+    const el = itemRefs.current[selectedVehicleId];
+    if (el && typeof el.scrollIntoView === 'function') {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [selectedVehicleId, visibleVehicles]);
+
   return (
-    <div className="min-h-dvh w-full overflow-x-hidden overflow-y-auto bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.16),transparent_34%),linear-gradient(135deg,_#05070b_0%,_#090b11_55%,_#020304_100%)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] text-white sm:p-6 lg:p-8">
+    <div className="min-h-screen w-full overflow-x-hidden overflow-y-auto bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.16),transparent_34%),linear-gradient(135deg,_#05070b_0%,_#090b11_55%,_#020304_100%)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] text-white sm:p-6 lg:p-8">
       <div className="mx-auto flex max-w-7xl flex-col gap-6">
         <motion.header
           initial={{ opacity: 0, y: 24 }}
@@ -135,7 +145,11 @@ export const ClientGridPage = () => {
                 </div>
               </div>
               <div className="rounded-[20px] border border-white/10 bg-white/5 p-3">
-                <div className="mb-3 h-36 rounded-[16px] bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.28),transparent_55%),linear-gradient(135deg,_rgba(30,41,59,0.95),rgba(2,6,23,1))]" />
+                <div className="mb-3 h-36 overflow-hidden rounded-[16px] bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.28),transparent_55%),linear-gradient(135deg,_rgba(30,41,59,0.95),rgba(2,6,23,1))]">
+                  {previewVehicle?.thumbnailUrl ? (
+                    <img src={previewVehicle.thumbnailUrl} alt={`${previewVehicle.brand} ${previewVehicle.model}`} className="h-full w-full object-cover" />
+                  ) : null}
+                </div>
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm text-zinc-400">Starting from</p>
@@ -255,19 +269,22 @@ export const ClientGridPage = () => {
           </div>
         ) : (
           <>
-            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-              {visibleVehicles.map((vehicle, index) => (
-                <VehicleCard
-                  key={vehicle.id}
-                  vehicle={vehicle}
-                  onSelect={handleConfigure}
-                  onQuickView={(vehicleId) => setSelectedVehicleId(vehicleId)}
-                  onConfigure={handleConfigure}
-                  index={index}
-                  variant="showroom"
-                  previewActive={previewVehicle?.id === vehicle.id}
-                />
-              ))}
+            <div className="overflow-y-auto pr-2 sm:pr-0 touch-scroll scrollbar-hide" style={{ maxHeight: 'calc(100vh - var(--header-height) - var(--footer-height) - 12rem)' }}>
+              <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                {visibleVehicles.map((vehicle, index) => (
+                  <div key={vehicle.id} ref={(el) => (itemRefs.current[vehicle.id] = el)} className="transition-transform will-change-transform">
+                    <VehicleCard
+                      vehicle={vehicle}
+                      onSelect={handleConfigure}
+                      onQuickView={(vehicleId) => setSelectedVehicleId(vehicleId)}
+                      onConfigure={handleConfigure}
+                      index={index}
+                      variant="showroom"
+                      previewActive={previewVehicle?.id === vehicle.id}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
 
             {hasMore ? (

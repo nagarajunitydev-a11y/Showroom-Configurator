@@ -61,6 +61,8 @@ export interface Vehicle {
   year: number;
   basePrice: number;
   url: string | null;
+  modelId?: string | null;
+  thumbnailUrl?: string | null;
   cameras: Record<string, [number, number, number]>;
   categories: VehicleCategory[];
   variants: VehicleVariant[];

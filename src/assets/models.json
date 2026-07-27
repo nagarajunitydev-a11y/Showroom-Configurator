@@ -1,0 +1,23 @@
+[
+  {
+    "id": "bike",
+    "name": "Urban Bike",
+    "category": "Bike",
+    "thumbnail": "thumbnails/bike.svg",
+    "filePath": "Bike.glb"
+  },
+  {
+    "id": "car",
+    "name": "Executive Car",
+    "category": "Car",
+    "thumbnail": "thumbnails/car.svg",
+    "filePath": "Car.glb"
+  },
+  {
+    "id": "motorbike",
+    "name": "Sport Motorbike",
+    "category": "Motorbike",
+    "thumbnail": "thumbnails/motorbike.svg",
+    "filePath": "Motorbike.glb"
+  }
+]

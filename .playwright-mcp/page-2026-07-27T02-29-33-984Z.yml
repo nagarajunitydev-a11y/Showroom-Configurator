@@ -1,0 +1,43 @@
+- generic [ref=e186]:
+  - generic:
+    - banner [ref=e190]:
+      - generic [ref=e191]:
+        - button "Back to Showroom" [ref=e192] [cursor=pointer]
+        - heading "Sample" [level=2] [ref=e195]
+        - heading "Executive Car" [level=1] [ref=e196]
+      - generic [ref=e197]:
+        - button "Launch AR" [ref=e198] [cursor=pointer]
+        - button "Download screenshot" [ref=e201] [cursor=pointer]
+        - button "Collapse side panels" [ref=e205] [cursor=pointer]
+        - button [disabled] [ref=e211]
+        - button [disabled] [ref=e215]
+    - generic [ref=e219]:
+      - generic [ref=e221]:
+        - button "Exterior Paint" [ref=e222] [cursor=pointer]
+        - button "Wheels & Alloys" [ref=e231] [cursor=pointer]
+        - button "Accessories" [ref=e236] [cursor=pointer]
+      - generic [ref=e243]:
+        - button "Glacier White Included" [ref=e244] [cursor=pointer]:
+          - generic [ref=e249]:
+            - generic [ref=e250]: Glacier White
+            - generic [ref=e251]: Included
+        - button "Obsidian Black +$1,200" [ref=e252] [cursor=pointer]:
+          - generic [ref=e255]:
+            - generic [ref=e256]: Obsidian Black
+            - generic [ref=e257]: +$1,200
+        - button "Rosso Corsa +$2,500" [ref=e258] [cursor=pointer]:
+          - generic [ref=e261]:
+            - generic [ref=e262]: Rosso Corsa
+            - generic [ref=e263]: +$2,500
+        - button "Stealth Grey (Matte) +$3,500" [ref=e264] [cursor=pointer]:
+          - generic [ref=e267]:
+            - generic [ref=e268]: Stealth Grey (Matte)
+            - generic [ref=e269]: +$3,500
+    - generic [ref=e270]:
+      - generic [ref=e271]:
+        - generic [ref=e272]: Total Build Price
+        - generic [ref=e273]: $98,000
+      - generic [ref=e274]:
+        - button "Summary" [ref=e275] [cursor=pointer]
+        - button "Save" [ref=e278] [cursor=pointer]
+        - button "Order Now" [ref=e279] [cursor=pointer]

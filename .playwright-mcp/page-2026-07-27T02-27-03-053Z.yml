@@ -1,0 +1,41 @@
+- generic [ref=e5]:
+  - banner [ref=e6]:
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - generic [ref=e9]: Configurator showroom
+        - heading "Discover the next build, then launch the configurator in one fluid motion." [level=1] [ref=e12]
+        - paragraph [ref=e13]: Explore the current fleet, compare each specification, and transition into the premium build studio without losing the same cinematic identity.
+        - generic [ref=e14]:
+          - button "Configure now" [ref=e15] [cursor=pointer]
+          - button "Preview build" [ref=e18] [cursor=pointer]
+      - generic [ref=e21]:
+        - generic [ref=e22]:
+          - generic [ref=e23]:
+            - paragraph [ref=e24]: Featured focus
+            - heading "Sample Urban Bike" [level=2] [ref=e25]
+          - generic [ref=e26]: "2026"
+        - generic [ref=e27]:
+          - img "Sample Urban Bike" [ref=e29]
+          - generic [ref=e30]:
+            - generic [ref=e31]:
+              - paragraph [ref=e32]: Starting from
+              - paragraph [ref=e33]: $85,000
+            - button "Open builder" [ref=e34] [cursor=pointer]
+  - generic [ref=e36]:
+    - generic [ref=e37]:
+      - generic [ref=e38]: Search vehicles
+      - searchbox "Search vehicles" [ref=e43]
+    - generic [ref=e44]:
+      - combobox [ref=e48]:
+        - option "All categories" [selected]
+        - option "Bike"
+        - option "Car"
+        - option "Motorbike"
+      - combobox [ref=e51]:
+        - option "Featured" [selected]
+        - 'option "Price: Low to high"'
+        - 'option "Price: High to low"'
+        - option "Newest"
+  - generic [ref=e52]:
+    - paragraph [ref=e53]: Preparing the showroom…
+    - paragraph [ref=e54]: Responsive across mobile, tablet, and desktop

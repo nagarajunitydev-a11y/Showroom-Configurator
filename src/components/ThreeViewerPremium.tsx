@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { useAppStore } from '../store';
+import { getVehicleModelUrl } from '../services/modelCatalog';
 import { usePremiumCamera } from '../hooks/usePremiumCamera';
 import { PremiumCameraConfig } from '../utils/PremiumVehicleCamera';
 import { createVehiclePivot } from '../utils/pivotUtils';
@@ -24,6 +26,7 @@ export const ThreeViewer = () => {
 
   const { selections, activeVehicleId, vehicles, activeCameraPreset } = useAppStore();
   const vehicle = vehicles.find((entry) => entry.id === activeVehicleId);
+  const resolvedModelUrl = getVehicleModelUrl(vehicle);
 
   // Premium camera configuration
   const cameraConfig: PremiumCameraConfig = {
@@ -48,7 +51,7 @@ export const ThreeViewer = () => {
     if (!containerRef.current || !vehicle) return;
 
     let isMounted = true;
-    setIsModelLoading(Boolean(vehicle.url));
+    setIsModelLoading(Boolean(resolvedModelUrl));
     setModelLoadProgress(0);
 
     const scene = new THREE.Scene();
@@ -109,12 +112,21 @@ export const ThreeViewer = () => {
     scene.add(shadowPlane);
 
     // Load vehicle model
-    if (vehicle.url) {
+    if (resolvedModelUrl) {
+      console.info('[ThreeViewerPremium] Loading vehicle model', { vehicleId: vehicle.id, modelId: vehicle.modelId, url: resolvedModelUrl });
+
       const loader = new GLTFLoader();
+      const dracoLoader = new DRACOLoader();
+      const decoderPath = `${import.meta.env.BASE_URL}draco/`;
+      console.info('[ThreeViewerPremium] Draco decoder path', decoderPath);
+      dracoLoader.setDecoderPath(decoderPath);
+      loader.setDRACOLoader(dracoLoader);
+
       loader.load(
-        vehicle.url,
+        resolvedModelUrl,
         (gltf) => {
           if (!isMounted) return;
+          console.info('[ThreeViewerPremium] Model loaded successfully', { vehicleId: vehicle.id, modelId: vehicle.modelId, url: resolvedModelUrl });
           setIsModelLoading(false);
           setModelLoadProgress(100);
 
@@ -152,16 +164,20 @@ export const ThreeViewer = () => {
         (progressEvent) => {
           if (!isMounted) return;
           const progress = progressEvent.total ? (progressEvent.loaded / progressEvent.total) * 100 : 0;
+          if (progress > 0) {
+            console.debug('[ThreeViewerPremium] Model loading progress', { vehicleId: vehicle.id, modelId: vehicle.modelId, progress, url: resolvedModelUrl });
+          }
           setModelLoadProgress(progress);
         },
         (error) => {
           if (!isMounted) return;
-          console.error('Failed to load 3D model', error);
+          console.error('[ThreeViewerPremium] Failed to load 3D model', { vehicleId: vehicle.id, modelId: vehicle.modelId, url: resolvedModelUrl, error });
           setIsModelLoading(false);
           setModelLoadProgress(100);
         }
       );
     } else {
+      console.warn('[ThreeViewerPremium] No model URL available for vehicle', { vehicleId: vehicle.id, modelId: vehicle.modelId });
       setIsModelLoading(false);
       setModelLoadProgress(100);
       const carGroup = new THREE.Group();
@@ -293,13 +309,16 @@ export const ThreeViewer = () => {
   return (
     <div className="absolute inset-0 z-0 h-full w-full bg-gradient-to-b from-zinc-900 to-black">
       {isModelLoading && (
-        <div className="absolute inset-x-0 top-0 z-10 flex flex-col gap-2 bg-black/40 px-4 py-3 backdrop-blur-sm sm:px-6">
-          <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.3em] text-zinc-300">
-            <span>Loading 3D model</span>
-            <span>{Math.round(modelLoadProgress)}%</span>
-          </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-            <div className="h-full rounded-full bg-white transition-all duration-300" style={{ width: `${Math.max(6, modelLoadProgress)}%` }} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-black/80 p-6 backdrop-blur-md border border-white/10">
+            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-zinc-300">
+              <span>Loading 3D model</span>
+              <span>{Math.round(modelLoadProgress)}%</span>
+            </div>
+            <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/10">
+              <div className="h-full rounded-full bg-white transition-all duration-300" style={{ width: `${Math.max(6, modelLoadProgress)}%` }} />
+            </div>
+            <p className="mt-3 text-sm text-zinc-400">Preparing the scene. This may take a moment on slower connections.</p>
           </div>
         </div>
       )}

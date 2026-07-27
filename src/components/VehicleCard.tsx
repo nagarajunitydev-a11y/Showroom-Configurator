@@ -42,7 +42,7 @@ const buildVehicleImage = (vehicle: Vehicle) => {
 };
 
 export const VehicleCard = ({ vehicle, onSelect, onQuickView, onConfigure, index = 0, variant = 'ring', previewActive = false }: VehicleCardProps) => {
-  const imageSrc = buildVehicleImage(vehicle);
+  const imageSrc = vehicle.thumbnailUrl ?? buildVehicleImage(vehicle);
   const status = index === 0 ? 'Featured' : index === 1 ? 'New' : 'Available';
 
   if (variant === 'list') {
