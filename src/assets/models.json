@@ -3,21 +3,21 @@
     "id": "bike",
     "name": "Urban Bike",
     "category": "Bike",
-    "thumbnail": "thumbnails/bike.svg",
+    "thumbnail": "thumbnails/bike.png",
     "filePath": "Bike.glb"
   },
   {
     "id": "car",
     "name": "Executive Car",
     "category": "Car",
-    "thumbnail": "thumbnails/car.svg",
+    "thumbnail": "thumbnails/car.png",
     "filePath": "Car.glb"
   },
   {
     "id": "motorbike",
     "name": "Sport Motorbike",
     "category": "Motorbike",
-    "thumbnail": "thumbnails/motorbike.svg",
+    "thumbnail": "thumbnails/motorbike.png",
     "filePath": "Motorbike.glb"
   }
 ]
