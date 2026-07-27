@@ -430,15 +430,15 @@ function ConfiguratorHeader({
   }
 
   return (
-    <header className="pointer-events-auto mx-4 mt-4 flex max-w-[calc(100vw-2rem)] flex-col gap-3 rounded-[24px] border border-white/15 bg-black/50 px-4 py-2.5 shadow-[0_0_0_1px_rgba(255,255,255,0.03),0_0_24px_rgba(56,189,248,0.12)] backdrop-blur-xl sm:mx-6 md:flex-row md:items-start md:justify-between md:px-5 md:py-4">
+    <header className="pointer-events-auto mx-2 mt-2 flex w-[calc(100%-1rem)] max-w-[100vw] flex-col gap-3 rounded-[24px] border border-white/15 bg-black/50 px-3 py-2.5 shadow-[0_0_0_1px_rgba(255,255,255,0.03),0_0_24px_rgba(56,189,248,0.12)] backdrop-blur-xl sm:mx-6 sm:w-auto sm:max-w-[calc(100vw-3rem)] md:flex-row md:items-start md:justify-between md:px-5 md:py-4">
       <div className="flex min-w-0 flex-col drop-shadow-md">
-        <button type="button" onClick={onBack} className="mb-3 flex w-fit items-center gap-2 text-sm font-medium text-zinc-400 transition-colors hover:text-white">
+        <button type="button" onClick={onBack} className="mb-2 flex w-fit items-center gap-2 text-sm font-medium text-zinc-400 transition-colors hover:text-white sm:mb-3">
           <ArrowLeft size={16} /> Back to Showroom
         </button>
         <h2 className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-400">{vehicle.brand}</h2>
         <h1 className="mt-1 truncate text-2xl font-light tracking-tight sm:text-3xl md:text-4xl">{vehicle.model}</h1>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {onAR && (
           <button
             type="button"
@@ -495,7 +495,7 @@ function DesktopLayout({
   children: ReactNode;
 }) {
   return (
-    <div className="pointer-events-auto flex w-full max-w-[min(100%,24rem)] flex-col overflow-hidden rounded-[24px] border border-white/15 bg-black/70 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_0_28px_rgba(56,189,248,0.12)] backdrop-blur-2xl sm:rounded-[28px] md:w-[22rem] xl:w-96">
+    <div className="pointer-events-auto flex w-full max-w-[min(100%,24rem)] flex-col overflow-hidden rounded-[24px] border border-white/15 bg-black/70 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_0_28px_rgba(56,189,248,0.12)] backdrop-blur-2xl sm:rounded-[28px] md:max-w-[22rem] lg:w-[22rem] xl:w-[24rem]">
       <div className="border-b border-white/10">
         <CategoryTabs vehicle={vehicle} activeCategory={activeCategory} onCategoryChange={onCategoryChange} />
       </div>
@@ -749,13 +749,13 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
         exposure="1"
       />
 
-      <div className="pointer-events-none flex flex-1 flex-col items-end justify-end p-4 md:flex-row md:items-stretch md:pb-6">
+      <div className="pointer-events-none flex flex-1 flex-col items-end justify-end p-2 sm:p-4 md:flex-row md:items-stretch md:pb-6">
         <DesktopLayout vehicle={vehicle} activeCategory={activeCategory} onCategoryChange={onCategoryChange}>
           <OptionsList vehicle={vehicle} activeCategory={activeCategory} selections={selections} onSelect={selectOption} />
         </DesktopLayout>
       </div>
 
-      <div className="pointer-events-auto z-20 mx-4 mb-4 flex w-auto max-w-full flex-col items-stretch justify-between gap-3 rounded-[24px] border border-white/15 bg-black/80 p-4 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_0_24px_rgba(56,189,248,0.12)] backdrop-blur-xl sm:mx-6 sm:gap-4 md:flex-row md:items-center md:px-8 md:py-5">
+      <div className="pointer-events-auto z-20 mx-2 mb-2 flex w-auto max-w-[calc(100%-1rem)] flex-col items-stretch justify-between gap-3 rounded-[24px] border border-white/15 bg-black/80 p-3 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_0_24px_rgba(56,189,248,0.12)] backdrop-blur-xl sm:mx-6 sm:max-w-full sm:gap-4 md:flex-row md:items-center md:px-8 md:py-5">
         <div className="flex w-full flex-col md:w-auto">
           <span className="mb-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-zinc-400">Total Build Price</span>
           <div className="text-2xl font-light tabular-nums sm:text-3xl">

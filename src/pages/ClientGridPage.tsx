@@ -269,7 +269,7 @@ export const ClientGridPage = () => {
           </div>
         ) : (
           <>
-            <div className="overflow-y-auto pr-2 sm:pr-0 touch-scroll scrollbar-hide" style={{ maxHeight: 'calc(100vh - var(--header-height) - var(--footer-height) - 12rem)' }}>
+            <div className="max-h-[calc(100vh-22rem)] overflow-y-auto pr-2 sm:pr-0">
               <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                 {visibleVehicles.map((vehicle, index) => (
                   <div key={vehicle.id} ref={(el) => (itemRefs.current[vehicle.id] = el)} className="transition-transform will-change-transform">

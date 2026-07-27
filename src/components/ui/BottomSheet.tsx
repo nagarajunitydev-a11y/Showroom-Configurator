@@ -149,7 +149,7 @@ export const BottomSheet = ({
       <div className="min-h-0 shrink-0 overflow-hidden border-b border-white/10">{peekContent}</div>
 
       <div
-        className={`touch-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain ${snap === 'peek' ? 'pointer-events-none opacity-0' : 'opacity-100'}`}
+        className={`touch-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pb-2 ${snap === 'peek' ? 'pointer-events-none opacity-0' : 'opacity-100'}`}
         aria-hidden={snap === 'peek'}
       >
         {children}

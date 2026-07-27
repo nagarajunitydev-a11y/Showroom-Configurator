@@ -74,7 +74,7 @@ export default function App() {
   const activeVehicle = vehicles.find((vehicle) => vehicle.id === activeVehicleId) ?? null;
 
   return (
-    <div className="relative min-h-screen w-full max-w-[100vw] overflow-hidden">
+    <div className="relative h-[100dvh] min-h-[100dvh] w-full max-w-[100vw] overflow-hidden bg-black">
       <AnimatePresence mode="wait">
         {currentView === 'client_grid' && <ClientGridPage key="grid" />}
         {currentView === 'admin_dashboard' && <AdminDashboardPage key="admin" />}
