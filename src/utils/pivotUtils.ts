@@ -74,6 +74,8 @@ export function createVehiclePivot(
   // Add pivot to scene/modelGroup
   modelGroup.add(pivotGroup);
 
+  pivotGroup.updateMatrixWorld(true);
+
   return {
     pivotGroup,
     vehicleWrapper,
@@ -170,7 +172,31 @@ export function recalculatePivotAfterScale(
   // Add pivot to scene
   modelGroup.add(pivotGroup);
 
+  // Refresh world matrices down the new hierarchy so any immediate bounds
+  // queries (validation, ground-plane placement) read the centered transform
+  // instead of the stale pre-reparent matrices.
+  pivotGroup.updateMatrixWorld(true);
+
   return { pivotGroup, bounds, adjustedCenter };
+}
+
+/**
+ * Returns the vehicle's world-space bounds AFTER it has been centered under
+ * the pivot. Use `box.min.y` to place the ground/shadow plane exactly under
+ * the wheels instead of assuming `-height / 2`.
+ */
+export function getPivotWorldBounds(pivotGroup: THREE.Group): {
+  boundingBox: THREE.Box3;
+  center: THREE.Vector3;
+  size: THREE.Vector3;
+  minY: number;
+  height: number;
+} {
+  pivotGroup.updateMatrixWorld(true);
+  const boundingBox = new THREE.Box3().setFromObject(pivotGroup);
+  const center = boundingBox.getCenter(new THREE.Vector3());
+  const size = boundingBox.getSize(new THREE.Vector3());
+  return { boundingBox, center, size, minY: boundingBox.min.y, height: size.y };
 }
 
 /**
@@ -187,6 +213,11 @@ export function validateVehiclePivot(
   issues: string[];
 } {
   const issues: string[] = [];
+
+  // Ensure world matrices are fresh. Box3.setFromObject on individual meshes does
+  // not update ancestor matrices, so without this the validation reads stale
+  // transforms right after reparenting and reports a false "not centered" offset.
+  pivotGroup.updateMatrixWorld(true);
 
   // Check if pivot is at world origin
   const pivotAtOrigin =
@@ -295,6 +326,7 @@ export function debugVehiclePivot(
   pivotGroup: THREE.Group,
   name: string = 'Vehicle'
 ): void {
+  pivotGroup.updateMatrixWorld(true);
   const validation = validateVehiclePivot(pivotGroup);
   
   console.group(`🚗 ${name} Pivot Debug Info`);

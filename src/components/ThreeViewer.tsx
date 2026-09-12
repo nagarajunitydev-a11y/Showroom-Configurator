@@ -13,8 +13,26 @@ import {
   validateVehiclePivot,
   debugVehiclePivot,
   getOrbitControlsTarget,
+  getPivotWorldBounds,
   calculateVehicleBounds,
 } from '../utils/pivotUtils';
+
+/** Soft elliptical contact blob texture (canvas-generated, no asset needed). */
+function makeContactShadowTexture(): THREE.CanvasTexture {
+  const size = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    const gradient = ctx.createRadialGradient(size / 2, size / 2, size * 0.04, size / 2, size / 2, size * 0.5);
+    gradient.addColorStop(0, 'rgba(15,23,42,0.40)');
+    gradient.addColorStop(0.55, 'rgba(15,23,42,0.16)');
+    gradient.addColorStop(1, 'rgba(15,23,42,0)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, size, size);
+  }
+  return new THREE.CanvasTexture(canvas);
+}
 
 interface ThreeRefState {
   mats: Record<string, THREE.Material>;
@@ -124,17 +142,22 @@ export const ThreeViewer = () => {
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
     scene.add(ambientLight);
 
+    // Key light kept nearly overhead so the real-time shadow falls tightly
+    // under the vehicle instead of stretching sideways (the previous
+    // (10, 10, 5) position ≈ 42° elevation threw body shadows ~1 unit to the
+    // side, reading as a detached/floating shadow). (4.5, 9, 2.5) ≈ 63°
+    // elevation keeps a natural modeling cue without the sideways throw.
     const dirLight = new THREE.DirectionalLight(0xffffff, 2);
-    dirLight.position.set(10, 10, 5);
+    dirLight.position.set(4.5, 9, 2.5);
     dirLight.castShadow = true;
-    dirLight.shadow.mapSize.width = 1024;
-    dirLight.shadow.mapSize.height = 1024;
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
     // Tightly frame the shadow camera around the vehicle (scaled to ~4 units) instead of
     // three.js's default ±5 frustum with far=500 — this keeps the shadow map resolution
     // concentrated on the model instead of being wasted on empty space, producing a crisper,
     // properly contact-grounded shadow.
-    dirLight.shadow.camera.near = 1;
-    dirLight.shadow.camera.far = 20;
+    dirLight.shadow.camera.near = 2;
+    dirLight.shadow.camera.far = 25;
     dirLight.shadow.camera.left = -4;
     dirLight.shadow.camera.right = 4;
     dirLight.shadow.camera.top = 4;
@@ -143,6 +166,15 @@ export const ThreeViewer = () => {
     dirLight.shadow.bias = -0.0015;
     dirLight.shadow.normalBias = 0.02;
     scene.add(dirLight);
+    // DirectionalLight.target must be in the scene graph for its world matrix
+    // to update; without this the shadow camera can aim at a stale transform.
+    scene.add(dirLight.target);
+
+    // Soft fill from the opposite side so the shadow side never goes pitch
+    // black. No shadow casting — key light owns shadows.
+    const fillLight = new THREE.DirectionalLight(0xdbeafe, 0.5);
+    fillLight.position.set(-6, 4, -6);
+    scene.add(fillLight);
 
     // ============================================
     // MATERIALS
@@ -178,20 +210,58 @@ export const ThreeViewer = () => {
     let loadedRoot: THREE.Object3D | null = null;
 
     // ============================================
-    // GROUND PLANE / CONTACT SHADOW
-    // Created up front with a neutral Y so it's already receiving shadows the moment the
-    // model loads; each branch below repositions it to the vehicle's true bottom edge
-    // once that vehicle's actual (scaled) bounds are known.
+    // STUDIO FLOOR + CONTACT SHADOW
+    // A visible floor disc gives the shadow something to sit on (a shadow
+    // floating in a gradient void always reads as detached). The disc catches
+    // the real-time directional shadow, while a soft radial blob directly
+    // under the footprint guarantees a grounded contact even where the key
+    // light's angle thins the real shadow out.
+    // Created up front; repositioned/resized to the vehicle's measured bottom
+    // edge once bounds are known.
     // ============================================
-    const shadowMat = new THREE.ShadowMaterial({ opacity: 0.35 });
-    const shadowPlane = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), shadowMat);
-    shadowPlane.rotation.x = -Math.PI / 2;
-    shadowPlane.receiveShadow = true;
-    scene.add(shadowPlane);
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0xdfe7f8, roughness: 0.96, metalness: 0 });
+    const floorDisc = new THREE.Mesh(new THREE.CircleGeometry(7, 64), floorMat);
+    floorDisc.rotation.x = -Math.PI / 2;
+    floorDisc.position.y = 0;
+    floorDisc.receiveShadow = true;
+    floorDisc.name = 'StudioFloor';
+    scene.add(floorDisc);
+
+    const contactShadowTex = makeContactShadowTexture();
+    const contactShadowMat = new THREE.MeshBasicMaterial({
+      map: contactShadowTex,
+      transparent: true,
+      depthWrite: false,
+    });
+    const contactShadow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), contactShadowMat);
+    contactShadow.rotation.x = -Math.PI / 2;
+    contactShadow.position.y = 0.002;
+    contactShadow.renderOrder = 1;
+    contactShadow.name = 'ContactShadow';
+    // Unit plane scaled per-vehicle below; start with a sensible default.
+    contactShadow.scale.set(4.4, 5, 1);
+    scene.add(contactShadow);
 
     // Small downward nudge below the model's exact bottom to avoid z-fighting/shadow acne
-    // between the ground plane and the wheels resting on it.
-    const GROUND_CONTACT_OFFSET = 0.05;
+    // between the ground plane and the wheels resting on it. Kept tiny (0.01)
+    // now that the floor is measured from post-pivot world bounds — the old
+    // 0.05 gap was large enough to read as floating at showroom scale.
+    const GROUND_CONTACT_OFFSET = 0.01;
+
+    /**
+     * Ground the studio floor + contact blob exactly under the vehicle using
+     * POST-pivot world bounds (robust to any centering strategy — never
+     * assumes bottom == -height/2).
+     */
+    const groundFloorToVehicle = (group: THREE.Group) => {
+      const { boundingBox, size } = getPivotWorldBounds(group);
+      const groundY = boundingBox.min.y - GROUND_CONTACT_OFFSET;
+      floorDisc.position.y = groundY;
+      contactShadow.position.y = groundY + 0.002;
+      // Elliptical blob following the actual footprint, padded slightly so it
+      // peeks out around the tires instead of ending exactly at the sidewalls.
+      contactShadow.scale.set(Math.max(0.5, size.x * 1.18), Math.max(0.5, size.z * 1.22), 1);
+    };
 
     // ============================================
     // MODEL LOADING
@@ -232,9 +302,9 @@ export const ThreeViewer = () => {
           pivotGroup = pivotResult.pivotGroup;
           loadedRoot = model;
 
-          // The vehicle is now centered on the pivot, so its lowest point (wheels) sits at
-          // exactly -height/2. Ground the shadow plane there instead of a guessed constant.
-          shadowPlane.position.y = -pivotResult.bounds.height / 2 - GROUND_CONTACT_OFFSET;
+          // Ground the studio floor to the vehicle's measured bottom edge
+          // (post-pivot world bounds — robust to any centering strategy).
+          groundFloorToVehicle(pivotGroup);
 
           // CRITICAL: When a model loads asynchronously we must update the orbit controls target
           // so the camera orbits the calculated pivot. Not updating controls.target here causes
@@ -341,7 +411,7 @@ export const ThreeViewer = () => {
       const pivotResult = createVehiclePivot(carGroup, scene, modelGroup);
       pivotGroup = pivotResult.pivotGroup;
       loadedRoot = carGroup;
-      shadowPlane.position.y = -pivotResult.bounds.height / 2 - GROUND_CONTACT_OFFSET;
+      groundFloorToVehicle(pivotGroup);
 
       const validation = validateVehiclePivot(pivotGroup);
       if (!validation.isValid) {
@@ -369,7 +439,10 @@ export const ThreeViewer = () => {
     controls.dampingFactor = 0.05;
     controls.minDistance = 3;
     controls.maxDistance = 12;
-    controls.maxPolarAngle = Math.PI / 2 + 0.05;
+    // Keep the camera above the studio floor. The previous PI/2 + 0.05 let
+    // users dip below the ground plane, where the shadow plane occludes the
+    // vehicle and the shadow reads as detached.
+    controls.maxPolarAngle = Math.PI / 2 - 0.03;
 
     // Disable right-click and drag interaction
     // Configure mouse buttons: LEFT=rotate, MIDDLE=zoom, RIGHT=disabled
@@ -489,8 +562,11 @@ export const ThreeViewer = () => {
         });
       });
       sharedMaterials.forEach(disposeMaterial);
-      shadowPlane.geometry.dispose();
-      shadowMat.dispose();
+      floorDisc.geometry.dispose();
+      floorMat.dispose();
+      contactShadow.geometry.dispose();
+      contactShadowMat.dispose();
+      contactShadowTex.dispose();
       scene.environment?.dispose();
 
       renderer.dispose();
