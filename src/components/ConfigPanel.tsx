@@ -58,13 +58,15 @@ function CategoryTabs({
           key={category.id}
           type="button"
           onClick={() => onCategoryChange(category.id)}
-          className={`relative flex shrink-0 flex-col items-center justify-center gap-1 px-3 transition-all ${compact ? 'min-w-[84px] py-2' : 'min-w-[96px] py-3 sm:min-w-[100px] sm:py-4'} ${
-            activeCategory === category.id ? 'bg-white/10 text-white' : 'text-zinc-500 hover:bg-white/5 hover:text-zinc-300'
+          className={`relative flex shrink-0 flex-col items-center justify-center gap-1 px-3 transition-colors duration-200 ${compact ? 'min-w-[84px] py-2.5' : 'min-w-[96px] py-3.5 sm:min-w-[104px] sm:py-4'} ${
+            activeCategory === category.id ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'
           }`}
         >
           {CATEGORY_ICONS[category.icon] || <Settings2 size={compact ? 16 : 20} />}
-          <span className="max-w-[72px] truncate text-[9px] font-semibold uppercase tracking-wider sm:text-[10px]">{category.name}</span>
-          {activeCategory === category.id && <motion.div layoutId="activeTab" className="absolute bottom-0 h-0.5 w-full bg-white" />}
+          <span className="max-w-[76px] truncate text-[11px] font-medium sm:text-xs">{category.name}</span>
+          {activeCategory === category.id && (
+            <motion.div layoutId="activeTab" className="absolute bottom-0 h-0.5 w-8 rounded-full bg-blue-600" />
+          )}
         </button>
       ))}
     </div>
@@ -88,10 +90,11 @@ function OptionsList({
     <AnimatePresence mode="wait">
       <motion.div
         key={activeCategory}
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -10 }}
-        className="flex flex-col gap-2 p-3 sm:gap-3 sm:p-4"
+        exit={{ opacity: 0, y: -8 }}
+        transition={{ duration: 0.18 }}
+        className="flex flex-col gap-2 p-3 sm:gap-2.5 sm:p-4"
       >
         {currentCategoryData?.options.map((option) => {
           const isSelected = selections[activeCategory] === option.id;
@@ -102,23 +105,32 @@ function OptionsList({
               key={option.id}
               type="button"
               onClick={() => onSelect(activeCategory, option.id)}
-              className={`flex min-h-[52px] w-full items-center justify-between rounded-xl border p-3 transition-all sm:p-4 ${
-                isSelected ? 'border-white bg-white/10' : 'border-white/5 bg-black/40 hover:bg-white/5'
+              className={`flex min-h-[56px] w-full items-center justify-between rounded-2xl border p-3 text-left transition-all duration-200 sm:p-3.5 ${
+                isSelected
+                  ? 'border-blue-500 bg-blue-50/70 shadow-[0_4px_16px_-6px_rgba(37,99,235,0.35)]'
+                  : 'border-slate-200 bg-white hover:border-blue-200 hover:bg-blue-50/40'
               }`}
             >
-              <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+              <div className="flex min-w-0 items-center gap-3 sm:gap-3.5">
                 {isColor ? (
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/20 shadow-inner" style={{ backgroundColor: option.hex }}>
+                  <div
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border shadow-inner transition-all ${isSelected ? 'border-blue-500 ring-2 ring-blue-200' : 'border-slate-200'}`}
+                    style={{ backgroundColor: option.hex }}
+                  >
                     {isSelected && <Check size={14} className="text-white mix-blend-difference" />}
                   </div>
                 ) : (
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-zinc-800">
-                    {isSelected && <Check size={14} className="text-white" />}
+                  <div
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-all ${
+                      isSelected ? 'border-blue-500 bg-blue-100 text-blue-600' : 'border-slate-200 bg-slate-50 text-slate-400'
+                    }`}
+                  >
+                    {isSelected && <Check size={14} />}
                   </div>
                 )}
                 <div className="min-w-0 flex flex-col items-start">
-                  <span className="truncate text-sm font-medium">{option.name}</span>
-                  <span className="text-xs text-zinc-400">{option.price > 0 ? `+${formatPrice(option.price)}` : 'Included'}</span>
+                  <span className={`truncate text-sm font-medium ${isSelected ? 'text-slate-900' : 'text-slate-700'}`}>{option.name}</span>
+                  <span className={`text-xs ${isSelected ? 'text-blue-600' : 'text-slate-400'}`}>{option.price > 0 ? `+${formatPrice(option.price)}` : 'Included'}</span>
                 </div>
               </div>
             </button>
@@ -133,12 +145,14 @@ function PricingFooter({
   totalPrice,
   onSummaryOpen,
   onSave,
+  isSaving,
   compact,
   footerRef,
 }: {
   totalPrice: number;
   onSummaryOpen: () => void;
   onSave: () => void;
+  isSaving?: boolean;
   compact?: boolean;
   footerRef?: React.RefObject<HTMLDivElement>;
 }) {
@@ -146,12 +160,12 @@ function PricingFooter({
     return (
       <div
         ref={footerRef}
-        className="pointer-events-auto fixed inset-x-0 bottom-0 z-30 w-full max-w-[100vw] border-t border-white/15 bg-black/95 px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-xl sm:px-4"
+        className="glass-panel-strong pointer-events-auto fixed inset-x-0 bottom-0 z-30 w-full max-w-[100vw] border-t px-3 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] sm:px-4"
       >
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400">Total</div>
-            <div className="truncate text-lg font-light tabular-nums sm:text-xl">
+            <div className="text-[10px] font-medium text-slate-400">Total</div>
+            <div className="font-display truncate text-lg font-semibold tabular-nums text-slate-900 sm:text-xl">
               <FormattedPrice price={totalPrice} />
             </div>
           </div>
@@ -159,7 +173,7 @@ function PricingFooter({
             <button
               type="button"
               onClick={onSummaryOpen}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white transition-all hover:bg-white/20"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-all active:scale-95"
               aria-label="Open summary"
             >
               <Info size={18} />
@@ -167,13 +181,14 @@ function PricingFooter({
             <button
               type="button"
               onClick={onSave}
-              className="inline-flex h-11 items-center justify-center gap-1 rounded-full bg-sky-500 px-3 text-xs font-semibold text-white transition-all hover:bg-sky-400 sm:px-4 sm:text-sm"
+              disabled={isSaving}
+              className="inline-flex h-11 items-center justify-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-600 transition-all hover:bg-blue-100 active:scale-95 disabled:opacity-50 sm:px-4 sm:text-sm"
             >
-              Save
+              {isSaving ? 'Saving…' : 'Save'}
             </button>
             <button
               type="button"
-              className="inline-flex h-11 items-center justify-center gap-1 rounded-full bg-white px-3 text-xs font-semibold text-black transition-all hover:bg-zinc-200 sm:px-4 sm:text-sm"
+              className="inline-flex h-11 items-center justify-center gap-1 rounded-full bg-blue-600 px-3 text-xs font-semibold text-white shadow-[0_8px_20px_-6px_rgba(37,99,235,0.6)] transition-all hover:bg-blue-500 active:scale-95 sm:px-4 sm:text-sm"
             >
               Order <ChevronRight size={16} />
             </button>
@@ -184,10 +199,10 @@ function PricingFooter({
   }
 
   return (
-    <div className="pointer-events-auto z-20 mx-4 mb-4 flex w-auto max-w-full flex-col items-stretch justify-between gap-3 rounded-[24px] border border-white/15 bg-black/80 p-4 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_0_24px_rgba(56,189,248,0.12)] backdrop-blur-xl sm:mx-6 sm:gap-4 md:flex-row md:items-center md:px-8 md:py-5">
+    <div className="glass-panel-strong pointer-events-auto z-20 mx-4 mb-4 flex w-auto max-w-full flex-col items-stretch justify-between gap-3 rounded-[24px] p-4 shadow-[0_20px_45px_-20px_rgba(37,99,235,0.35)] sm:mx-6 sm:gap-4 md:flex-row md:items-center md:px-8 md:py-5">
       <div className="flex w-full flex-col md:w-auto">
-        <span className="mb-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-zinc-400">Total Build Price</span>
-        <div className="text-2xl font-light tabular-nums sm:text-3xl">
+        <span className="mb-1 text-xs font-medium text-slate-400">Total build price</span>
+        <div className="font-display text-2xl font-semibold tabular-nums text-slate-900 sm:text-3xl">
           <FormattedPrice price={totalPrice} />
         </div>
       </div>
@@ -195,15 +210,23 @@ function PricingFooter({
         <button
           type="button"
           onClick={onSummaryOpen}
-          className="flex min-h-[44px] items-center justify-center gap-2 rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm font-medium text-white transition-all hover:bg-white/20"
+          className="flex min-h-[44px] items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-600 transition-all hover:border-blue-200 hover:text-blue-600 active:scale-[0.98]"
         >
           <Info size={16} /> Summary
         </button>
         <button
           type="button"
-          className="flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition-all hover:bg-gray-200"
+          onClick={onSave}
+          disabled={isSaving}
+          className="flex min-h-[44px] items-center justify-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-5 py-3 text-sm font-semibold text-blue-600 transition-all hover:bg-blue-100 active:scale-[0.98] disabled:opacity-50"
         >
-          Order Now <ChevronRight size={16} />
+          {isSaving ? 'Saving…' : 'Save'}
+        </button>
+        <button
+          type="button"
+          className="flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-[0_12px_28px_-10px_rgba(37,99,235,0.65)] transition-all hover:bg-blue-500 active:scale-[0.98]"
+        >
+          Order now <ChevronRight size={16} />
         </button>
       </div>
     </div>
@@ -226,7 +249,7 @@ function SummaryModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="pointer-events-auto fixed inset-0 z-50 flex items-end justify-center bg-black/70 sm:items-center sm:p-4"
+      className="pointer-events-auto fixed inset-0 z-50 flex items-end justify-center bg-slate-900/30 backdrop-blur-sm sm:items-center sm:p-4"
       onClick={onClose}
     >
       <motion.div
@@ -235,51 +258,51 @@ function SummaryModal({
         exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 28, stiffness: 320 }}
         onClick={(event) => event.stopPropagation()}
-        className="touch-scroll max-h-[min(90dvh,100%)] w-full max-w-[100vw] overflow-y-auto rounded-t-[28px] border border-white/10 bg-zinc-950 p-5 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl sm:max-w-2xl sm:rounded-[28px] sm:p-6"
+        className="touch-scroll max-h-[min(90dvh,100%)] w-full max-w-[100vw] overflow-y-auto rounded-t-[28px] border border-slate-200 bg-white p-5 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl sm:max-w-2xl sm:rounded-[28px] sm:p-6"
       >
         <div className="mb-4 flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <div className="text-xs uppercase tracking-[0.3em] text-zinc-500">Vehicle Summary</div>
-            <h2 className="mt-2 truncate text-2xl font-semibold text-white sm:text-3xl">
+            <div className="text-xs font-medium text-slate-400">Vehicle summary</div>
+            <h2 className="font-display mt-1 truncate text-2xl font-semibold text-slate-900 sm:text-3xl">
               {vehicle.brand} {vehicle.model}
             </h2>
-            <p className="mt-1 text-sm text-zinc-400">Data for the vehicle currently loaded in the scene.</p>
+            <p className="mt-1 text-sm text-slate-500">Everything currently loaded in the scene.</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="min-touch shrink-0 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm text-white transition-colors hover:bg-white/10"
+            className="min-touch shrink-0 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100"
           >
             Close
           </button>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div className="text-xs uppercase tracking-[0.3em] text-zinc-500">Model</div>
-            <div className="mt-2 text-lg font-medium text-white">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="text-xs font-medium text-slate-400">Model</div>
+            <div className="mt-2 text-lg font-medium text-slate-900">
               {vehicle.brand} {vehicle.model}
             </div>
-            <div className="mt-1 text-sm text-zinc-400">
+            <div className="mt-1 text-sm text-slate-500">
               {vehicle.year} · {vehicle.type}
             </div>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div className="text-xs uppercase tracking-[0.3em] text-zinc-500">Total Price</div>
-            <div className="mt-2 text-3xl font-semibold text-white">
+          <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+            <div className="text-xs font-medium text-blue-500">Total price</div>
+            <div className="font-display mt-2 text-3xl font-semibold text-slate-900">
               <FormattedPrice price={totalPrice} />
             </div>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:col-span-2">
-            <div className="text-xs uppercase tracking-[0.3em] text-zinc-500">Current Build</div>
-            <div className="mt-4 space-y-3">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:col-span-2">
+            <div className="text-xs font-medium text-slate-400">Current build</div>
+            <div className="mt-4 space-y-2.5">
               {selectedOptions.map(({ category, option }) => (
-                <div key={category.id} className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 p-3">
+                <div key={category.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3">
                   <div className="min-w-0">
-                    <div className="text-sm font-medium text-white">{category.name}</div>
-                    <div className="truncate text-xs text-zinc-500">{option?.name ?? 'Not selected'}</div>
+                    <div className="text-sm font-medium text-slate-900">{category.name}</div>
+                    <div className="truncate text-xs text-slate-400">{option?.name ?? 'Not selected'}</div>
                   </div>
-                  <div className="shrink-0 text-sm font-medium text-white">{option?.price ? `+${formatPrice(option.price)}` : 'Included'}</div>
+                  <div className="shrink-0 text-sm font-medium text-slate-700">{option?.price ? `+${formatPrice(option.price)}` : 'Included'}</div>
                 </div>
               ))}
             </div>
@@ -304,7 +327,7 @@ function ScreenshotPreviewModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="pointer-events-auto fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+      className="pointer-events-auto fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
       <motion.div
@@ -313,31 +336,31 @@ function ScreenshotPreviewModal({
         exit={{ scale: 0.96, opacity: 0 }}
         transition={{ type: 'spring', damping: 24, stiffness: 300 }}
         onClick={(event) => event.stopPropagation()}
-        className="max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-[28px] border border-white/10 bg-zinc-950 shadow-2xl"
+        className="max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-2xl"
       >
-        <div className="flex items-center justify-between gap-4 border-b border-white/10 px-5 py-4">
+        <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4">
           <div>
-            <div className="text-xs uppercase tracking-[0.3em] text-zinc-500">Screenshot Preview</div>
-            <h2 className="mt-2 text-xl font-semibold text-white">Capture Ready</h2>
+            <div className="text-xs font-medium text-slate-400">Screenshot preview</div>
+            <h2 className="font-display mt-1 text-xl font-semibold text-slate-900">Capture ready</h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm text-white transition-colors hover:bg-white/10"
+            className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100"
           >
             Close
           </button>
         </div>
-        <div className="bg-black p-4 sm:p-5">
-          <div className="overflow-hidden rounded-3xl border border-white/10 bg-zinc-900">
+        <div className="bg-slate-50 p-4 sm:p-5">
+          <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white">
             <img src={imageUrl} alt="Screenshot preview" className="block h-full w-full max-h-[60vh] object-contain" />
           </div>
         </div>
-        <div className="flex flex-col gap-3 border-t border-white/10 bg-zinc-950 px-5 py-4 sm:flex-row sm:justify-end">
+        <div className="flex flex-col gap-3 border-t border-slate-200 bg-white px-5 py-4 sm:flex-row sm:justify-end">
           <button
             type="button"
             onClick={onDownload}
-            className="flex min-h-[44px] items-center justify-center rounded-full bg-sky-500 px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-sky-400"
+            className="flex min-h-[44px] items-center justify-center rounded-full bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_-8px_rgba(37,99,235,0.6)] transition-all hover:bg-blue-500 active:scale-[0.98]"
           >
             Download
           </button>
@@ -380,20 +403,20 @@ function ConfiguratorHeader({
     return (
       <header
         ref={headerRef}
-        className="pointer-events-auto fixed inset-x-0 top-0 z-30 w-full max-w-[100vw] border-b border-white/10 bg-black/70 px-2 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-xl sm:px-3"
+        className="glass-panel-strong pointer-events-auto fixed inset-x-0 top-0 z-30 w-full max-w-[100vw] border-b px-2 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] sm:px-3"
       >
         <div className="flex items-center justify-between gap-1">
           <button
             type="button"
             onClick={onBack}
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-all active:scale-95"
             aria-label="Back to showroom"
           >
             <ArrowLeft size={18} />
           </button>
           <div className="min-w-0 flex-1 px-1 text-center">
-            <div className="truncate text-[10px] uppercase tracking-[0.2em] text-zinc-400">{vehicle.brand}</div>
-            <div className="truncate text-sm font-medium">{vehicle.model}</div>
+            <div className="truncate text-[10px] font-medium text-slate-400">{vehicle.brand}</div>
+            <div className="font-display truncate text-sm font-semibold text-slate-900">{vehicle.model}</div>
           </div>
           <div className="flex shrink-0 items-center gap-1">
             {onAR && (
@@ -401,7 +424,7 @@ function ConfiguratorHeader({
                 type="button"
                 onClick={onAR}
                 disabled={isARLaunching}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/5 transition-all hover:bg-white/10 disabled:opacity-50"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-all hover:text-blue-600 disabled:opacity-50"
                 aria-label="Launch AR"
               >
                 <Smartphone size={18} />
@@ -411,16 +434,16 @@ function ConfiguratorHeader({
               <button
                 type="button"
                 onClick={onDownload}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/5 transition-all hover:bg-white/10"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-all hover:text-blue-600"
                 aria-label="Download screenshot"
               >
                 <Download size={18} />
               </button>
             )}
-            <button type="button" onClick={onUndo} disabled={!canUndo} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/5 disabled:opacity-30" aria-label="Undo">
+            <button type="button" onClick={onUndo} disabled={!canUndo} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 disabled:opacity-30" aria-label="Undo">
               <Undo2 size={18} />
             </button>
-            <button type="button" onClick={onRedo} disabled={!canRedo} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/5 disabled:opacity-30" aria-label="Redo">
+            <button type="button" onClick={onRedo} disabled={!canRedo} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 disabled:opacity-30" aria-label="Redo">
               <Redo2 size={18} />
             </button>
           </div>
@@ -430,13 +453,13 @@ function ConfiguratorHeader({
   }
 
   return (
-    <header className="pointer-events-auto mx-2 mt-2 flex w-[calc(100%-1rem)] max-w-[100vw] flex-col gap-3 rounded-[24px] border border-white/15 bg-black/50 px-3 py-2.5 shadow-[0_0_0_1px_rgba(255,255,255,0.03),0_0_24px_rgba(56,189,248,0.12)] backdrop-blur-xl sm:mx-6 sm:w-auto sm:max-w-[calc(100vw-3rem)] md:flex-row md:items-start md:justify-between md:px-5 md:py-4">
-      <div className="flex min-w-0 flex-col drop-shadow-md">
-        <button type="button" onClick={onBack} className="mb-2 flex w-fit items-center gap-2 text-sm font-medium text-zinc-400 transition-colors hover:text-white sm:mb-3">
-          <ArrowLeft size={16} /> Back to Showroom
+    <header className="glass-panel-strong pointer-events-auto mx-2 mt-2 flex w-[calc(100%-1rem)] max-w-[100vw] flex-col gap-3 rounded-[24px] px-3 py-2.5 shadow-[0_10px_35px_-18px_rgba(37,99,235,0.4)] sm:mx-6 sm:w-auto sm:max-w-[calc(100vw-3rem)] md:flex-row md:items-center md:justify-between md:px-6 md:py-4">
+      <div className="flex min-w-0 flex-col">
+        <button type="button" onClick={onBack} className="mb-2 flex w-fit items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-blue-600 sm:mb-2.5">
+          <ArrowLeft size={16} /> Back to showroom
         </button>
-        <h2 className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-400">{vehicle.brand}</h2>
-        <h1 className="mt-1 truncate text-2xl font-light tracking-tight sm:text-3xl md:text-4xl">{vehicle.model}</h1>
+        <h2 className="text-xs font-medium text-slate-400">{vehicle.brand}</h2>
+        <h1 className="font-display mt-0.5 truncate text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">{vehicle.model}</h1>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         {onAR && (
@@ -444,7 +467,7 @@ function ConfiguratorHeader({
             type="button"
             onClick={onAR}
             disabled={isARLaunching}
-            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-white/15 bg-white/5 backdrop-blur-xl transition-all hover:bg-white/10 disabled:opacity-50"
+            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-all hover:border-blue-200 hover:text-blue-600 disabled:opacity-50"
             title="Launch AR"
             aria-label="Launch AR"
           >
@@ -455,7 +478,7 @@ function ConfiguratorHeader({
           <button
             type="button"
             onClick={onDownload}
-            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-white/15 bg-white/5 backdrop-blur-xl transition-all hover:bg-white/10"
+            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-all hover:border-blue-200 hover:text-blue-600"
             title="Download screenshot"
             aria-label="Download screenshot"
           >
@@ -466,16 +489,16 @@ function ConfiguratorHeader({
           <button
             type="button"
             onClick={onToggleExpand}
-            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-white/15 bg-white/5 backdrop-blur-xl transition-all hover:bg-white/10"
+            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-all hover:border-blue-200 hover:text-blue-600"
             title={isExpanded ? 'Collapse side panels' : 'Expand side panels'}
           >
             {isExpanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
           </button>
         )}
-        <button type="button" onClick={onUndo} disabled={!canUndo} className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-white/15 bg-white/5 backdrop-blur-xl transition-all hover:bg-white/10 disabled:opacity-30">
+        <button type="button" onClick={onUndo} disabled={!canUndo} className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-all hover:border-blue-200 hover:text-blue-600 disabled:opacity-30">
           <Undo2 size={18} />
         </button>
-        <button type="button" onClick={onRedo} disabled={!canRedo} className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-white/15 bg-white/5 backdrop-blur-xl transition-all hover:bg-white/10 disabled:opacity-30">
+        <button type="button" onClick={onRedo} disabled={!canRedo} className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-all hover:border-blue-200 hover:text-blue-600 disabled:opacity-30">
           <Redo2 size={18} />
         </button>
       </div>
@@ -495,8 +518,8 @@ function DesktopLayout({
   children: ReactNode;
 }) {
   return (
-    <div className="pointer-events-auto flex w-full max-w-[min(100%,24rem)] flex-col overflow-hidden rounded-[24px] border border-white/15 bg-black/70 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_0_28px_rgba(56,189,248,0.12)] backdrop-blur-2xl sm:rounded-[28px] md:max-w-[22rem] lg:w-[22rem] xl:w-[24rem]">
-      <div className="border-b border-white/10">
+    <div className="glass-panel-strong pointer-events-auto flex w-full max-w-[min(100%,24rem)] flex-col overflow-hidden rounded-[28px] shadow-[0_25px_60px_-25px_rgba(37,99,235,0.4)] md:max-w-[22rem] lg:w-[22rem] xl:w-[24rem]">
+      <div className="border-b border-slate-200 px-1">
         <CategoryTabs vehicle={vehicle} activeCategory={activeCategory} onCategoryChange={onCategoryChange} />
       </div>
       <div className="max-h-[56vh] flex-1 overflow-y-auto touch-scroll">{children}</div>
@@ -654,7 +677,7 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
 
   if (!isDesktop) {
     return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pointer-events-none absolute inset-0 z-10 max-w-[100vw] overflow-hidden font-sans text-white">
+      <motion.div key="mobile" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pointer-events-none absolute inset-0 z-10 max-w-[100vw] overflow-hidden font-sans text-slate-900">
         {modelViewer}
         <ConfiguratorHeader
           vehicle={vehicle}
@@ -670,7 +693,7 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
           compact
         />
 
-        <PricingFooter footerRef={footerRef} totalPrice={totalPrice} onSummaryOpen={() => setIsSummaryOpen(true)} onSave={handleSave} compact />
+        <PricingFooter footerRef={footerRef} totalPrice={totalPrice} onSummaryOpen={() => setIsSummaryOpen(true)} onSave={handleSave} isSaving={isSaving} compact />
 
         <BottomSheet
           snap={sheetSnap}
@@ -705,16 +728,16 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
 
   if (!isDesktopExpanded) {
     return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-end p-6">
-        <div className="pointer-events-auto flex w-full max-w-xl items-center justify-between rounded-full border border-white/10 bg-black/75 px-4 py-3 backdrop-blur-xl">
+      <motion.div key="desktop-collapsed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-end p-6">
+        <div className="glass-panel-strong pointer-events-auto flex w-full max-w-xl items-center justify-between rounded-full px-4 py-3 shadow-[0_15px_35px_-15px_rgba(37,99,235,0.4)]">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.3em] text-zinc-400">{vehicle.brand}</div>
-            <div className="text-sm font-medium">{vehicle.model}</div>
+            <div className="text-[10px] font-medium text-slate-400">{vehicle.brand}</div>
+            <div className="font-display text-sm font-semibold text-slate-900">{vehicle.model}</div>
           </div>
           <button
             type="button"
             onClick={() => setIsDesktopExpanded(true)}
-            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-white/15 bg-white/5 text-white transition-all hover:bg-white/10"
+            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-all hover:border-blue-200 hover:text-blue-600"
             title="Expand panels"
           >
             <Maximize2 size={18} />
@@ -725,7 +748,7 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
   }
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pointer-events-none absolute inset-0 z-10 flex flex-col justify-between font-sans text-white">
+    <motion.div key="desktop-expanded" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pointer-events-none absolute inset-0 z-10 flex flex-col justify-between font-sans text-slate-900">
       <ConfiguratorHeader
         vehicle={vehicle}
         onBack={() => setView('client_grid')}
@@ -755,37 +778,7 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
         </DesktopLayout>
       </div>
 
-      <div className="pointer-events-auto z-20 mx-2 mb-2 flex w-auto max-w-[calc(100%-1rem)] flex-col items-stretch justify-between gap-3 rounded-[24px] border border-white/15 bg-black/80 p-3 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_0_24px_rgba(56,189,248,0.12)] backdrop-blur-xl sm:mx-6 sm:max-w-full sm:gap-4 md:flex-row md:items-center md:px-8 md:py-5">
-        <div className="flex w-full flex-col md:w-auto">
-          <span className="mb-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-zinc-400">Total Build Price</span>
-          <div className="text-2xl font-light tabular-nums sm:text-3xl">
-            <FormattedPrice price={totalPrice} />
-          </div>
-        </div>
-        <div className="flex flex-col gap-2 sm:flex-row md:w-auto">
-          <button
-            type="button"
-            onClick={() => setIsSummaryOpen(true)}
-            className="flex min-h-[44px] items-center justify-center gap-2 rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm font-medium text-white transition-all hover:bg-white/20"
-          >
-            <Info size={16} /> Summary
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving}
-            className="flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-sky-500 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-sky-400 disabled:opacity-40"
-          >
-            {isSaving ? 'Saving...' : 'Save'}
-          </button>
-          <button
-            type="button"
-            className="flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-black transition-all hover:bg-zinc-200"
-          >
-            Order Now <ChevronRight size={16} />
-          </button>
-        </div>
-      </div>
+      <PricingFooter totalPrice={totalPrice} onSummaryOpen={() => setIsSummaryOpen(true)} onSave={handleSave} isSaving={isSaving} />
 
       <AnimatePresence>
         {isSummaryOpen && (
@@ -802,14 +795,14 @@ export const ConfigPanel = ({ vehicle, activeCategory, onCategoryChange }: Confi
 
       {arMessage && (
         <div className="pointer-events-none fixed inset-x-0 top-20 z-50 flex justify-center px-4">
-          <div className="pointer-events-auto rounded-2xl border border-white/10 bg-black/90 px-5 py-3 text-sm text-white shadow-xl backdrop-blur-xl">
+          <div className="glass-panel-strong pointer-events-auto rounded-2xl px-5 py-3 text-sm font-medium text-slate-700 shadow-[0_15px_35px_-15px_rgba(37,99,235,0.35)]">
             {arMessage}
           </div>
         </div>
       )}
       {saveMessage && (
         <div className="pointer-events-none fixed inset-x-0 bottom-20 z-50 flex justify-center px-4">
-          <div className="pointer-events-auto rounded-2xl border border-white/10 bg-black/90 px-5 py-3 text-sm text-white shadow-xl backdrop-blur-xl">
+          <div className="glass-panel-strong pointer-events-auto rounded-2xl px-5 py-3 text-sm font-medium text-slate-700 shadow-[0_15px_35px_-15px_rgba(37,99,235,0.35)]">
             {saveMessage}
           </div>
         </div>

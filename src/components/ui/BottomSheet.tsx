@@ -134,7 +134,7 @@ export const BottomSheet = ({
       initial={false}
       transition={{ type: 'spring', damping: 30, stiffness: 340 }}
       style={{ bottom: bottomOffset, touchAction: 'pan-y', maxHeight: `calc(var(--vh, 1vh) * 100 - ${bottomOffset}px)` }}
-      className={`pointer-events-auto fixed inset-x-0 z-20 mx-auto flex w-full max-w-[100vw] flex-col overflow-hidden rounded-t-[20px] border border-white/15 border-b-0 bg-black/85 shadow-[0_-8px_40px_rgba(0,0,0,0.45)] backdrop-blur-2xl ${className}`}
+      className={`glass-panel-strong pointer-events-auto fixed inset-x-0 z-20 mx-auto flex w-full max-w-[100vw] flex-col overflow-hidden rounded-t-[20px] border-b-0 shadow-[0_-15px_45px_-15px_rgba(37,99,235,0.3)] ${className}`}
     >
       <button
         type="button"
@@ -143,10 +143,10 @@ export const BottomSheet = ({
         className="flex w-full shrink-0 flex-col items-center justify-center"
         style={{ height: HANDLE_HEIGHT }}
       >
-        <span className="h-1 w-10 rounded-full bg-white/30" />
+        <span className="h-1 w-10 rounded-full bg-slate-300" />
       </button>
 
-      <div className="min-h-0 shrink-0 overflow-hidden border-b border-white/10">{peekContent}</div>
+      <div className="min-h-0 shrink-0 overflow-hidden border-b border-slate-200">{peekContent}</div>
 
       <div
         className={`touch-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pb-2 ${snap === 'peek' ? 'pointer-events-none opacity-0' : 'opacity-100'}`}

@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+import { Maximize, Minimize, RefreshCcw, RotateCw, ZoomIn, ZoomOut } from 'lucide-react';
 import { useAppStore } from '../store';
 import { getVehicleModelUrl } from '../services/modelCatalog';
 import {
@@ -23,17 +24,67 @@ interface ThreeRefState {
   pivotGroup: THREE.Group | null;
   scene: THREE.Scene;
   renderer: THREE.WebGLRenderer;
+  zoomBy: (factor: number) => void;
+  resetView: () => void;
+  toggleAutoRotate: () => boolean;
+}
+
+function DockButton({
+  label,
+  active,
+  onClick,
+  children,
+}: {
+  label: string;
+  active?: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={label}
+      aria-label={label}
+      aria-pressed={active}
+      className={`flex h-10 w-10 items-center justify-center rounded-full transition-all duration-200 ${
+        active
+          ? 'bg-blue-600 text-white shadow-[0_6px_18px_-4px_rgba(37,99,235,0.55)]'
+          : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600 active:scale-95'
+      }`}
+    >
+      {children}
+    </button>
+  );
 }
 
 export const ThreeViewer = () => {
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const threeRef = useRef<ThreeRefState | null>(null);
   const [isModelLoading, setIsModelLoading] = useState(false);
   const [modelLoadProgress, setModelLoadProgress] = useState(0);
+  const [isAutoRotating, setIsAutoRotating] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const { selections, activeVehicleId, vehicles, activeCameraPreset } = useAppStore();
   const vehicle = vehicles.find((entry) => entry.id === activeVehicleId);
   const resolvedModelUrl = getVehicleModelUrl(vehicle);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => setIsFullscreen(document.fullscreenElement === rootRef.current);
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!rootRef.current) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      rootRef.current.requestFullscreen().catch(() => {});
+    }
+  };
 
   useEffect(() => {
     if (!containerRef.current || !vehicle) return;
@@ -48,10 +99,10 @@ export const ThreeViewer = () => {
     // SCENE SETUP
     // ============================================
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color('#050505');
-    scene.fog = new THREE.Fog('#050505', 10, 30);
+    scene.background = null;
+    scene.fog = new THREE.Fog('#e2eafb', 10, 30);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
     renderer.shadowMap.enabled = true;
@@ -65,6 +116,10 @@ export const ThreeViewer = () => {
     // ============================================
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
     scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
+    // The generator's own intermediate render targets/materials aren't needed once the
+    // environment texture has been produced — free them immediately rather than leaking
+    // them on every vehicle switch (each switch tears down and recreates the whole scene).
+    pmremGenerator.dispose();
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
     scene.add(ambientLight);
@@ -74,6 +129,19 @@ export const ThreeViewer = () => {
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 1024;
     dirLight.shadow.mapSize.height = 1024;
+    // Tightly frame the shadow camera around the vehicle (scaled to ~4 units) instead of
+    // three.js's default ±5 frustum with far=500 — this keeps the shadow map resolution
+    // concentrated on the model instead of being wasted on empty space, producing a crisper,
+    // properly contact-grounded shadow.
+    dirLight.shadow.camera.near = 1;
+    dirLight.shadow.camera.far = 20;
+    dirLight.shadow.camera.left = -4;
+    dirLight.shadow.camera.right = 4;
+    dirLight.shadow.camera.top = 4;
+    dirLight.shadow.camera.bottom = -4;
+    dirLight.shadow.camera.updateProjectionMatrix();
+    dirLight.shadow.bias = -0.0015;
+    dirLight.shadow.normalBias = 0.02;
     scene.add(dirLight);
 
     // ============================================
@@ -105,6 +173,25 @@ export const ThreeViewer = () => {
     scene.add(modelGroup);
 
     let pivotGroup: THREE.Group | null = null;
+    // Tracks whichever mesh tree (loaded GLTF or procedural fallback) actually ends up in
+    // the scene, so cleanup can dispose its geometries/materials/textures on unmount.
+    let loadedRoot: THREE.Object3D | null = null;
+
+    // ============================================
+    // GROUND PLANE / CONTACT SHADOW
+    // Created up front with a neutral Y so it's already receiving shadows the moment the
+    // model loads; each branch below repositions it to the vehicle's true bottom edge
+    // once that vehicle's actual (scaled) bounds are known.
+    // ============================================
+    const shadowMat = new THREE.ShadowMaterial({ opacity: 0.35 });
+    const shadowPlane = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), shadowMat);
+    shadowPlane.rotation.x = -Math.PI / 2;
+    shadowPlane.receiveShadow = true;
+    scene.add(shadowPlane);
+
+    // Small downward nudge below the model's exact bottom to avoid z-fighting/shadow acne
+    // between the ground plane and the wheels resting on it.
+    const GROUND_CONTACT_OFFSET = 0.05;
 
     // ============================================
     // MODEL LOADING
@@ -143,6 +230,11 @@ export const ThreeViewer = () => {
           // This ensures the vehicle rotates around its geometric center
           const pivotResult = recalculatePivotAfterScale(model, scale, modelGroup);
           pivotGroup = pivotResult.pivotGroup;
+          loadedRoot = model;
+
+          // The vehicle is now centered on the pivot, so its lowest point (wheels) sits at
+          // exactly -height/2. Ground the shadow plane there instead of a guessed constant.
+          shadowPlane.position.y = -pivotResult.bounds.height / 2 - GROUND_CONTACT_OFFSET;
 
           // CRITICAL: When a model loads asynchronously we must update the orbit controls target
           // so the camera orbits the calculated pivot. Not updating controls.target here causes
@@ -248,6 +340,8 @@ export const ThreeViewer = () => {
       // Create pivot for procedural car
       const pivotResult = createVehiclePivot(carGroup, scene, modelGroup);
       pivotGroup = pivotResult.pivotGroup;
+      loadedRoot = carGroup;
+      shadowPlane.position.y = -pivotResult.bounds.height / 2 - GROUND_CONTACT_OFFSET;
 
       const validation = validateVehiclePivot(pivotGroup);
       if (!validation.isValid) {
@@ -255,16 +349,6 @@ export const ThreeViewer = () => {
         debugVehiclePivot(pivotGroup, 'Procedural Vehicle');
       }
     }
-
-    // ============================================
-    // SHADOW PLANE
-    // ============================================
-    const shadowMat = new THREE.ShadowMaterial({ opacity: 0.5 });
-    const shadowPlane = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), shadowMat);
-    shadowPlane.rotation.x = -Math.PI / 2;
-    shadowPlane.position.y = -2; // Position below the vehicle
-    shadowPlane.receiveShadow = true;
-    scene.add(shadowPlane);
 
     // ============================================
     // CAMERA SETUP
@@ -318,6 +402,38 @@ export const ThreeViewer = () => {
     });
 
     // ============================================
+    // FLOATING DOCK HELPERS (zoom / reset / auto-rotate)
+    // Reuse the same targetCameraPos lerp used by camera presets above.
+    // ============================================
+    const zoomBy = (factor: number) => {
+      const direction = camera.position.clone().sub(controls.target);
+      const length = THREE.MathUtils.clamp(direction.length() * factor, controls.minDistance, controls.maxDistance);
+      direction.setLength(length);
+      state.targetCameraPos = controls.target.clone().add(direction);
+    };
+
+    const resetView = () => {
+      const activeVariant = vehicle.variants.find((entry) => entry.id === vehicle.activeVariantId) ?? vehicle.variants[0] ?? null;
+      const resetPosition = activeVariant?.cameraSettings?.position ?? vehicle.cameraSettings?.position ?? [5, 2, 5];
+      state.targetCameraPos = new THREE.Vector3(...resetPosition);
+
+      if (pivotGroup) {
+        controls.target.copy(getOrbitControlsTarget(pivotGroup, 0.5));
+      } else {
+        const resetTarget = activeVariant?.cameraSettings?.target ?? vehicle.cameraSettings?.target ?? [0, 0.5, 0];
+        controls.target.set(...resetTarget);
+      }
+      controls.autoRotate = false;
+      controls.update();
+    };
+
+    const toggleAutoRotate = () => {
+      controls.autoRotate = !controls.autoRotate;
+      controls.autoRotateSpeed = 1.4;
+      return controls.autoRotate;
+    };
+
+    // ============================================
     // ANIMATION LOOP
     // ============================================
     let frameId = 0;
@@ -340,17 +456,51 @@ export const ThreeViewer = () => {
     };
     window.addEventListener('resize', handleResize);
 
-    threeRef.current = { mats, camera, controls, state, pivotGroup, scene, renderer };
+    threeRef.current = { mats, camera, controls, state, pivotGroup, scene, renderer, zoomBy, resetView, toggleAutoRotate };
 
     // ============================================
     // CLEANUP
+    // Every vehicle switch tears down and rebuilds this whole scene (effect deps: [vehicle]),
+    // so anything not explicitly disposed here leaks GPU memory/programs a little more each
+    // time a user browses through vehicles — eventually exhausting the browser's WebGL
+    // context budget. Dispose geometries/materials/textures the same way three.js's own
+    // examples do.
     // ============================================
+    const disposeMaterial = (material: THREE.Material) => {
+      Object.values(material).forEach((value) => {
+        if (value instanceof THREE.Texture) value.dispose();
+      });
+      material.dispose();
+    };
+
     return () => {
       isMounted = false;
       window.removeEventListener('resize', handleResize);
       window.cancelAnimationFrame(frameId);
       controls.dispose();
+
+      const sharedMaterials = new Set<THREE.Material>(Object.values(mats));
+      loadedRoot?.traverse((child) => {
+        if (!(child instanceof THREE.Mesh)) return;
+        child.geometry?.dispose();
+        const material = child.material;
+        (Array.isArray(material) ? material : [material]).forEach((mat) => {
+          if (mat && !sharedMaterials.has(mat)) disposeMaterial(mat);
+        });
+      });
+      sharedMaterials.forEach(disposeMaterial);
+      shadowPlane.geometry.dispose();
+      shadowMat.dispose();
+      scene.environment?.dispose();
+
       renderer.dispose();
+      // renderer.dispose() only frees three.js's own tracked resources — the underlying
+      // WebGLRenderingContext stays alive until the browser's GC gets around to it, which
+      // is nowhere near fast enough when a user browses through several vehicles in one
+      // session. Each mount opens a brand-new context, so without forcing this one closed
+      // immediately, live contexts pile up until the browser hits its hard cap and starts
+      // evicting the oldest ones (surfacing as WebGL "program not valid" errors).
+      renderer.forceContextLoss();
       if (containerRef.current && renderer.domElement.parentNode === containerRef.current) {
         containerRef.current.removeChild(renderer.domElement);
       }
@@ -401,22 +551,61 @@ export const ThreeViewer = () => {
   }, [activeCameraPreset, vehicle]);
 
   return (
-    <div className="absolute inset-0 z-0 h-full w-full bg-gradient-to-b from-zinc-900 to-black">
+    <div
+      ref={rootRef}
+      className="absolute inset-0 z-0 h-full w-full overflow-hidden bg-[linear-gradient(180deg,#f8fafe_0%,#eef3fc_55%,#e2e9f8_100%)]"
+    >
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{ background: 'radial-gradient(46% 42% at 50% 40%, rgba(59,130,246,0.16) 0%, rgba(59,130,246,0) 72%)' }}
+      />
+      <div ref={containerRef} className="absolute inset-0 h-full w-full" />
+
+      <div className="pointer-events-auto absolute left-3 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-1 rounded-full border border-white/70 bg-white/60 p-1.5 shadow-[0_10px_35px_-12px_rgba(37,99,235,0.35)] backdrop-blur-xl sm:left-5">
+        <DockButton label="Zoom in" onClick={() => threeRef.current?.zoomBy(0.85)}>
+          <ZoomIn size={18} />
+        </DockButton>
+        <DockButton label="Zoom out" onClick={() => threeRef.current?.zoomBy(1.18)}>
+          <ZoomOut size={18} />
+        </DockButton>
+        <DockButton
+          label={isAutoRotating ? 'Stop rotation' : 'Auto-rotate'}
+          active={isAutoRotating}
+          onClick={() => {
+            const next = threeRef.current?.toggleAutoRotate();
+            if (typeof next === 'boolean') setIsAutoRotating(next);
+          }}
+        >
+          <RotateCw size={18} />
+        </DockButton>
+        <DockButton
+          label="Reset view"
+          onClick={() => {
+            threeRef.current?.resetView();
+            setIsAutoRotating(false);
+          }}
+        >
+          <RefreshCcw size={18} />
+        </DockButton>
+        <DockButton label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'} onClick={toggleFullscreen}>
+          {isFullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
+        </DockButton>
+      </div>
+
       {isModelLoading && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-black/80 p-6 backdrop-blur-md border border-white/10">
-            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-zinc-300">
-              <span>Loading 3D model</span>
-              <span>{Math.round(modelLoadProgress)}%</span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-white/70 bg-white/85 p-6 shadow-[0_20px_45px_-15px_rgba(37,99,235,0.35)] backdrop-blur-xl">
+            <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+              <span>Loading model</span>
+              <span className="text-blue-600">{Math.round(modelLoadProgress)}%</span>
             </div>
-            <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/10">
-              <div className="h-full rounded-full bg-white transition-all duration-300" style={{ width: `${Math.max(6, modelLoadProgress)}%` }} />
+            <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+              <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-300" style={{ width: `${Math.max(6, modelLoadProgress)}%` }} />
             </div>
-            <p className="mt-3 text-sm text-zinc-400">Preparing the scene. This may take a moment on slower connections.</p>
+            <p className="mt-3 text-sm text-slate-500">Preparing the scene — almost ready.</p>
           </div>
         </div>
       )}
-      <div ref={containerRef} className="absolute inset-0 h-full w-full" />
     </div>
   );
 };

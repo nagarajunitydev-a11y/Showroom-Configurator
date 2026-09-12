@@ -82,23 +82,27 @@ export const VehicleCard = ({ vehicle, onSelect, onQuickView, onConfigure, index
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.32, delay: index * 0.06 }}
-        className={`group overflow-hidden rounded-[24px] border bg-black/70 shadow-[0_0_0_1px_rgba(255,255,255,0.03),0_0_24px_rgba(56,189,248,0.12)] backdrop-blur-xl transition-all duration-300 ${previewActive ? 'border-sky-400/40' : 'border-white/10'}`}
+        className={`group overflow-hidden rounded-[24px] border bg-white transition-all duration-300 hover:-translate-y-1 ${
+          previewActive
+            ? 'border-blue-400 shadow-[0_20px_45px_-20px_rgba(37,99,235,0.5)]'
+            : 'border-slate-200 shadow-[0_12px_30px_-18px_rgba(37,99,235,0.25)] hover:border-blue-200 hover:shadow-[0_20px_45px_-18px_rgba(37,99,235,0.35)]'
+        }`}
       >
         <button
           type="button"
           onClick={() => onSelect(vehicle.id)}
           aria-label={`Open ${vehicle.brand} ${vehicle.model} configurator`}
-          className="flex w-full flex-col text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+          className="flex w-full flex-col text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
         >
           <div className="relative overflow-hidden p-3">
-            <img src={imageSrc} alt={`${vehicle.brand} ${vehicle.model}`} loading="lazy" className="h-48 w-full rounded-[18px] object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+            <img src={imageSrc} alt={`${vehicle.brand} ${vehicle.model}`} loading="lazy" className="h-48 w-full rounded-[18px] bg-slate-50 object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
             <div className="absolute inset-x-3 top-3 flex items-start justify-between">
-              <span className="rounded-full border border-white/15 bg-black/45 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-zinc-200 backdrop-blur">
+              <span className="rounded-full border border-white/70 bg-white/85 px-3 py-1 text-xs font-medium text-slate-600 shadow-sm backdrop-blur">
                 {status}
               </span>
               {vehicle.url && (
-                <span className="rounded-full border border-sky-400/20 bg-sky-400/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-sky-300">
-                  3D Ready
+                <span className="rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-600">
+                  3D ready
                 </span>
               )}
             </div>
@@ -107,40 +111,40 @@ export const VehicleCard = ({ vehicle, onSelect, onQuickView, onConfigure, index
           <div className="flex flex-1 flex-col p-5">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-zinc-500">{vehicle.type}</p>
-                <h3 className="mt-1 text-xl font-semibold text-white">{vehicle.brand} {vehicle.model}</h3>
+                <p className="text-xs font-medium text-slate-400">{vehicle.type}</p>
+                <h3 className="font-display mt-1 text-xl font-semibold text-slate-900">{vehicle.brand} {vehicle.model}</h3>
               </div>
-              <div className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-medium text-zinc-300">
+              <div className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-500">
                 {vehicle.year}
               </div>
             </div>
 
-            <p className="min-h-[48px] text-sm leading-6 text-zinc-400">
+            <p className="min-h-[48px] text-sm leading-6 text-slate-500">
               {vehicle.brand} craftsmanship paired with immersive configuration controls and tailored finishes.
             </p>
 
             <div className="mt-4 flex items-center justify-between">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-zinc-500">Starting from</p>
-                <div className="mt-1 text-lg font-semibold text-white"><FormattedPrice price={vehicle.basePrice} /></div>
+                <p className="text-xs font-medium text-slate-400">Starting from</p>
+                <div className="font-display mt-1 text-lg font-semibold text-slate-900"><FormattedPrice price={vehicle.basePrice} /></div>
               </div>
-              <div className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm font-medium text-zinc-300">
+              <div className="inline-flex items-center gap-1 rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-600">
                 <Sparkles size={14} /> Premium
               </div>
             </div>
           </div>
         </button>
 
-        <div className="flex flex-wrap gap-2 border-t border-white/10 bg-white/5 p-4">
+        <div className="flex flex-wrap gap-2 border-t border-slate-200 bg-slate-50/60 p-4">
           <button
             type="button"
             onClick={(event) => {
               event.stopPropagation();
               onQuickView?.(vehicle.id);
             }}
-            className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-white/10 bg-black/40 px-3 py-2 text-sm font-medium text-zinc-300 transition-colors hover:border-sky-400/40 hover:text-white"
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition-all hover:border-blue-200 hover:text-blue-600 active:scale-[0.98]"
           >
-            <Eye size={16} /> Quick View
+            <Eye size={16} /> Quick view
           </button>
           <button
             type="button"
@@ -148,9 +152,9 @@ export const VehicleCard = ({ vehicle, onSelect, onQuickView, onConfigure, index
               event.stopPropagation();
               onConfigure?.(vehicle.id);
             }}
-            className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-white px-3 py-2 text-sm font-semibold text-black transition-colors hover:bg-zinc-200"
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-[0_10px_24px_-8px_rgba(37,99,235,0.6)] transition-all hover:bg-blue-500 active:scale-[0.98]"
           >
-            <CarFront size={16} /> Configure Now
+            <CarFront size={16} /> Configure now
           </button>
         </div>
       </motion.article>
